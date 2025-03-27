@@ -22,9 +22,8 @@
         
         .container {
             display: flex;
-            flex-direction: row;
+            flex-direction: column;
             gap: 20px;
-            align-items: flex-start;
         }
         
         .input-section, .output-section {
@@ -32,8 +31,6 @@
             border-radius: 8px;
             padding: 20px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            flex: 1;
-            max-width: 50%;
         }
         
         .input-container {
@@ -75,7 +72,6 @@
         .control-group {
             flex: 1;
             min-width: 200px;
-            margin-bottom: 10px;
         }
         
         label {
@@ -85,49 +81,17 @@
             color: #2c3e50;
         }
         
-        select, input[type="number"], input[type="color"] {
+        select, input[type="range"], input[type="number"], input[type="color"] {
             width: 100%;
             padding: 8px;
             border-radius: 4px;
             border: 1px solid #ddd;
         }
         
-        input[type="range"] {
-            -webkit-appearance: none;
-            width: 100%;
-            height: 4px;
-            border-radius: 5px;
-            background-color: #e0e0e0;
-            outline: none;
-        }
-        
-        input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 16px;
-            height: 16px;
-            border-radius: 50%;
-            background: #fff;
-            border: 1px solid #ccc;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-            cursor: pointer;
-        }
-        
-        input[type="range"]::-moz-range-thumb {
-            width: 16px;
-            height: 16px;
-            border-radius: 50%;
-            background: #fff;
-            border: 1px solid #ccc;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-            cursor: pointer;
-        }
-        
         .slider-container {
             display: flex;
             align-items: center;
             gap: 10px;
-            margin-top: 5px;
         }
         
         .slider-container input[type="range"] {
@@ -135,7 +99,7 @@
         }
         
         .convert-btn {
-            background-color: #2196F3;
+            background-color: #3498db;
             color: white;
             border: none;
             padding: 12px 20px;
@@ -148,13 +112,38 @@
         }
         
         .convert-btn:hover {
-            background-color: #0b7dda;
+            background-color: #2980b9;
         }
         
         .output-section {
             display: flex;
             flex-direction: column;
             gap: 15px;
+        }
+        
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+        }
+        
+        .tab.active {
+            border-bottom: 2px solid #3498db;
+            font-weight: 600;
+        }
+        
+        .tab-content {
+            display: none;
+            padding: 15px 0;
+        }
+        
+        .tab-content.active {
+            display: block;
         }
         
         #ascii-output {
@@ -165,8 +154,7 @@
             padding: 15px;
             border-radius: 4px;
             line-height: 1.2;
-            font-size: 8px;
-            height: 500px;
+            font-size: 8px;  /* Default font size */
         }
         
         .output-controls {
@@ -177,22 +165,20 @@
         }
         
         .download-btn {
-            background-color: #4CAF50;
+            background-color: #2ecc71;
             color: white;
             border: none;
             padding: 8px 15px;
             border-radius: 4px;
             cursor: pointer;
             transition: background-color 0.3s;
-            display: inline-block;
-            text-align: center;
-            margin-right: 10px;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
         }
         
         .download-btn:hover {
-            background-color: #45a049;
+            background-color: #27ae60;
         }
 
         .color-preset {
@@ -221,7 +207,18 @@
         }
         
         @media (min-width: 992px) {
+            .container {
+                flex-direction: row;
+                align-items: flex-start;
+            }
+            
+            .input-section, .output-section {
+                flex: 1;
+                max-width: 50%;
+            }
+            
             #ascii-output {
+                height: 500px;
                 font-size: 12px;
             }
         }
@@ -251,87 +248,6 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        
-        .masking-controls {
-            margin-top: 20px;
-            padding: 15px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            background-color: #f9f9f9;
-        }
-        
-        .mask-toggle {
-            margin-bottom: 10px;
-        }
-        
-        .mask-options {
-            display: none;
-            margin-top: 10px;
-        }
-        
-        .mask-options.active {
-            display: block;
-        }
-        
-        .canvas-container {
-            display: none;
-            margin-top: 15px;
-            text-align: center;
-        }
-        
-        #mask-canvas {
-            border: 1px solid #ddd;
-            max-width: 100%;
-            cursor: crosshair;
-        }
-        
-        .brush-size-container {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-top: 10px;
-        }
-        
-        .display-settings {
-            margin-top: 20px;
-            padding: 15px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            background-color: #f9f9f9;
-        }
-        
-        .display-settings h3 {
-            margin-top: 0;
-            margin-bottom: 15px;
-        }
-        
-        .reset-btn {
-            background-color: #e74c3c;
-            color: white;
-            border: none;
-            padding: 8px 15px;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: background-color 0.3s;
-            display: inline-block;
-            text-align: center;
-            margin-top: 15px;
-        }
-        
-        .reset-btn:hover {
-            background-color: #c0392b;
-        }
-        
-        #debug-info {
-            display: none;
-            margin-top: 10px;
-            color: #666;
-            font-size: 12px;
-            background-color: #f9f9f9;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
     </style>
 </head>
 <body>
@@ -344,55 +260,6 @@
                     <p>Click to upload an image or drag and drop</p>
                     <input type="file" id="image-input" accept="image/*" style="display: none;">
                     <img id="preview" style="display: none;">
-                </div>
-                
-                <!-- Masking controls -->
-                <div class="masking-controls">
-                    <div class="mask-toggle">
-                        <input type="checkbox" id="enable-masking">
-                        <label for="enable-masking">Enable Image Masking (Foreground/Background)</label>
-                    </div>
-                    
-                    <div class="mask-options" id="mask-options">
-                        <p>Use the brush to paint over the main subject you want to isolate</p>
-                        
-                        <div class="brush-size-container">
-                            <label for="brush-size">Brush Size:</label>
-                            <input type="range" id="brush-size" min="5" max="50" value="20">
-                            <span id="brush-size-value">20px</span>
-                        </div>
-                        
-                        <div class="control-group">
-                            <label for="foreground-color-mode">Foreground Color Mode:</label>
-                            <select id="foreground-color-mode">
-                                <option value="none">No Color</option>
-                                <option value="original">Original Colors</option>
-                                <option value="custom">Custom Color</option>
-                                <option value="gradient">Gradient</option>
-                                <option value="riso">RISO Ink</option>
-                                <option value="inverted">Inverted</option>
-                            </select>
-                        </div>
-                        
-                        <div class="control-group">
-                            <label for="background-color-mode">Background Color Mode:</label>
-                            <select id="background-color-mode">
-                                <option value="none">No Color</option>
-                                <option value="original">Original Colors</option>
-                                <option value="custom">Custom Color</option>
-                                <option value="gradient">Gradient</option>
-                                <option value="riso">RISO Ink</option>
-                                <option value="inverted">Inverted</option>
-                            </select>
-                        </div>
-                        
-                        <button id="clear-mask" class="reset-btn">Clear Mask</button>
-                        <button id="toggle-mask-preview" class="download-btn" style="margin-top: 10px;">Toggle Mask Preview</button>
-                        
-                        <div class="canvas-container" id="canvas-container">
-                            <canvas id="mask-canvas"></canvas>
-                        </div>
-                    </div>
                 </div>
                 
                 <div class="controls">
@@ -412,7 +279,6 @@
                             <option value="standard">Standard (@%#*+=-:. )</option>
                             <option value="simple">Simple (#. )</option>
                             <option value="complex">Complex ($@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\|()1{}[]?-_+~<>i!lI;:,"^`'. )</option>
-                            <option value="bold-complex">Bold Complex</option>
                             <option value="arabic">Arabic Script</option>
                             <option value="korean">Korean (Hangul)</option>
                             <option value="custom">Custom</option>
@@ -453,6 +319,11 @@
                     </div>
                     
                     <div class="control-group">
+                        <label for="invert">Invert Colours</label>
+                        <input type="checkbox" id="invert">
+                    </div>
+                    
+                    <div class="control-group">
                         <label>Colour Mode</label>
                         <select id="color-mode">
                             <option value="none">No Colour</option>
@@ -460,8 +331,6 @@
                             <option value="custom">Custom Colour</option>
                             <option value="gradient">Gradient</option>
                             <option value="riso">RISO Ink</option>
-                            <option value="mixed-riso">Mixed RISO Ink</option>
-                            <option value="inverted">Inverted</option>
                         </select>
                         
                         <div id="color-options" style="display: none; margin-top: 10px;">
@@ -498,50 +367,9 @@
                                 <option value="#444444">Flat Gold</option>
                             </select>
                         </div>
-                        
-                        <div id="mixed-riso-options" style="display: none; margin-top: 10px;">
-                            <label>Primary RISO Ink:</label>
-                            <select id="primary-riso-color">
-                                <option value="#0078BF">Blue</option>
-                                <option value="#00A95C">Green</option>
-                                <option value="#FF48B0">Fluorescent Pink</option>
-                                <option value="#FF665E">Bright Red</option>
-                                <option value="#FFE800">Yellow</option>
-                                <option value="#3255A4">Medium Blue</option>
-                                <option value="#FF8B00">Orange</option>
-                                <option value="#9D2768">Burgundy</option>
-                                <option value="#00838A">Teal</option>
-                                <option value="#9164CD">Purple</option>
-                                <option value="#444444">Flat Gold</option>
-                            </select>
-                            
-                            <label style="margin-top: 10px;">Secondary RISO Ink:</label>
-                            <select id="secondary-riso-color">
-                                <option value="#FF48B0">Fluorescent Pink</option>
-                                <option value="#0078BF">Blue</option>
-                                <option value="#00A95C">Green</option>
-                                <option value="#FF665E">Bright Red</option>
-                                <option value="#FFE800">Yellow</option>
-                                <option value="#3255A4">Medium Blue</option>
-                                <option value="#FF8B00">Orange</option>
-                                <option value="#9D2768">Burgundy</option>
-                                <option value="#00838A">Teal</option>
-                                <option value="#9164CD">Purple</option>
-                                <option value="#444444">Flat Gold</option>
-                            </select>
-                            
-                            <label style="margin-top: 10px;">Mix Ratio:</label>
-                            <div class="slider-container">
-                                <input type="range" id="riso-mix-ratio" min="0" max="100" value="50">
-                                <span class="slider-value" id="riso-mix-ratio-value">50%</span>
-                            </div>
-                        </div>
                     </div>
-                </div>
-                
-                <!-- Display Settings -->
-                <div class="display-settings">
-                    <h3>Display Settings</h3>
+                    
+                    <!-- Display Settings moved here from the tab -->
                     <div class="control-group">
                         <label for="font-size">Character Size</label>
                         <div class="slider-container">
@@ -576,37 +404,35 @@
                         <input type="color" id="text-color" value="#000000">
                     </div>
                     
-                    <button id="reset-display-settings" class="reset-btn">Reset to Default Settings</button>
+                    <div class="control-group">
+                        <button id="reset-display-settings" class="download-btn" style="background-color: #e74c3c; margin-top: 15px;">Reset to Default Settings</button>
+                    </div>
                 </div>
                 
                 <button class="convert-btn" id="convert-btn">Convert to ASCII Art</button>
-                <div id="debug-info"></div>
             </div>
         </div>
         
         <div class="output-section">
-            <div id="loading" class="loading">
-                <div class="loading-spinner"></div>
-                <p>Converting your image to ASCII art...</p>
+            <div class="tabs">
+                <div class="tab active" data-tab="ascii">ASCII Output</div>
             </div>
             
-            <pre id="ascii-output">Your ASCII art will appear here after conversion.</pre>
-            
-            <div class="output-controls">
-                <button class="download-btn" id="download-txt">Download as TXT</button>
-                <button class="download-btn" id="download-html">Download as HTML</button>
-                <button class="download-btn" id="download-png">Download as PNG</button>
+            <div class="tab-content active" id="ascii-tab">
+                <div id="loading" class="loading">
+                    <div class="loading-spinner"></div>
+                    <p>Converting your image to ASCII art...</p>
+                </div>
+                <pre id="ascii-output">Your ASCII art will appear here after conversion.</pre>
+                
+                <div class="output-controls">
+                    <button class="download-btn" id="download-txt">Download as TXT</button>
+                    <button class="download-btn" id="download-html">Download as HTML</button>
+                </div>
             </div>
         </div>
     </div>
-    
-    <div style="text-align: center; margin-top: 10px;">
-        <a href="#" id="toggle-debug" style="color: #666; text-decoration: none; font-size: 12px;">Show/Hide Debug Info</a>
-    </div>
 
-    <!-- Load html2canvas library -->
-    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
-    
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // DOM elements
@@ -621,12 +447,10 @@
             const colorOptions = document.getElementById('color-options');
             const gradientOptions = document.getElementById('gradient-options');
             const risoOptions = document.getElementById('riso-options');
-            const mixedRisoOptions = document.getElementById('mixed-riso-options');
             const colorPresets = document.querySelectorAll('.color-option');
             const customColorInput = document.getElementById('custom-color');
             const downloadTxtBtn = document.getElementById('download-txt');
             const downloadHtmlBtn = document.getElementById('download-html');
-            const downloadPngBtn = document.getElementById('download-png');
             const fontSizeSlider = document.getElementById('font-size');
             const fontSizeValue = document.getElementById('font-size-value');
             const lineHeightSlider = document.getElementById('line-height');
@@ -645,236 +469,30 @@
             const aspectRatioValue = document.getElementById('aspect-ratio-value');
             const resetDisplayBtn = document.getElementById('reset-display-settings');
             const loading = document.getElementById('loading');
-            const risoMixRatioSlider = document.getElementById('riso-mix-ratio');
-            const risoMixRatioValue = document.getElementById('riso-mix-ratio-value');
-            const toggleDebugBtn = document.getElementById('toggle-debug');
-            const debugInfo = document.getElementById('debug-info');
-            
-            // Masking elements
-            const enableMasking = document.getElementById('enable-masking');
-            const maskOptions = document.getElementById('mask-options');
-            const maskCanvas = document.getElementById('mask-canvas');
-            const canvasContainer = document.getElementById('canvas-container');
-            const brushSizeSlider = document.getElementById('brush-size');
-            const brushSizeValue = document.getElementById('brush-size-value');
-            const clearMaskBtn = document.getElementById('clear-mask');
-            const toggleMaskPreviewBtn = document.getElementById('toggle-mask-preview');
-            const foregroundColorModeSelect = document.getElementById('foreground-color-mode');
-            const backgroundColorModeSelect = document.getElementById('background-color-mode');
             
             // Image data
             let originalImage = null;
             let processedAscii = null;
-            let maskCtx = null;
-            let showMaskPreview = false;
-            
-            // Masking variables
-            let maskData = null;
-            let isDrawing = false;
-            let lastX = 0;
-            let lastY = 0;
-            let brushSize = 20;
-            
-            // Debug logging
-            function logDebug(message, isError = false) {
-                const logEntry = document.createElement('p');
-                logEntry.textContent = message;
-                if (isError) {
-                    logEntry.style.color = 'red';
-                }
-                debugInfo.appendChild(logEntry);
-                console.log(message);
-            }
-            
-            // Initialize masking
-            enableMasking.addEventListener('change', function() {
-                if (this.checked) {
-                    maskOptions.style.display = 'block';
-                    if (originalImage) {
-                        setupMaskCanvas();
-                    }
-                } else {
-                    maskOptions.style.display = 'none';
-                }
-            });
-            
-            // Brush size handling
-            brushSizeSlider.addEventListener('input', function() {
-                brushSize = parseInt(this.value);
-                brushSizeValue.textContent = brushSize + 'px';
-            });
-            
-            // Clear mask button
-            clearMaskBtn.addEventListener('click', function() {
-                if (maskCtx) {
-                    maskCtx.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
-                    maskData = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
-                }
-            });
-            
-            // Toggle mask preview
-            toggleMaskPreviewBtn.addEventListener('click', function() {
-                showMaskPreview = !showMaskPreview;
-                if (maskCtx && originalImage) {
-                    if (showMaskPreview) {
-                        // Show mask preview with original image semi-transparent
-                        maskCtx.globalAlpha = 0.3;
-                        maskCtx.drawImage(originalImage, 0, 0, maskCanvas.width, maskCanvas.height);
-                        maskCtx.globalAlpha = 0.7;
-                        
-                        // Draw red tint over the mask
-                        const maskData = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
-                        for (let i = 0; i < maskData.data.length; i += 4) {
-                            if (maskData.data[i + 3] > 0) {  // If there's alpha (mask)
-                                maskData.data[i] = 255;      // R
-                                maskData.data[i + 1] = 0;    // G
-                                maskData.data[i + 2] = 0;    // B
-                            }
-                        }
-                        maskCtx.putImageData(maskData, 0, 0);
-                        this.textContent = 'Hide Mask Preview';
-                    } else {
-                        // Restore original mask
-                        setupMaskCanvas();
-                        this.textContent = 'Show Mask Preview';
-                    }
-                }
-            });
-            
-            // Setup mask canvas
-            function setupMaskCanvas() {
-                if (!originalImage) return;
-                
-                canvasContainer.style.display = 'block';
-                
-                // Set canvas dimensions to match image
-                const maxWidth = 500; // Limit canvas size for usability
-                let canvasWidth, canvasHeight;
-                const aspectRatio = originalImage.width / originalImage.height;
-                
-                if (originalImage.width > maxWidth) {
-                    canvasWidth = maxWidth;
-                    canvasHeight = maxWidth / aspectRatio;
-                } else {
-                    canvasWidth = originalImage.width;
-                    canvasHeight = originalImage.height;
-                }
-                
-                maskCanvas.width = canvasWidth;
-                maskCanvas.height = canvasHeight;
-                
-                // Setup mask context
-                maskCtx = maskCanvas.getContext('2d');
-                maskCtx.clearRect(0, 0, canvasWidth, canvasHeight);
-                
-                // Initialize mask data
-                maskData = maskCtx.getImageData(0, 0, canvasWidth, canvasHeight);
-                
-                // Set up drawing events
-                maskCanvas.addEventListener('mousedown', startDrawing);
-                maskCanvas.addEventListener('mousemove', draw);
-                maskCanvas.addEventListener('mouseup', stopDrawing);
-                maskCanvas.addEventListener('mouseout', stopDrawing);
-                
-                // Touch events for mobile
-                maskCanvas.addEventListener('touchstart', handleTouchStart);
-                maskCanvas.addEventListener('touchmove', handleTouchMove);
-                maskCanvas.addEventListener('touchend', stopDrawing);
-            }
-            
-            // Drawing on mask
-            function startDrawing(e) {
-                isDrawing = true;
-                const rect = maskCanvas.getBoundingClientRect();
-                lastX = e.clientX - rect.left;
-                lastY = e.clientY - rect.top;
-                draw(e); // Start drawing immediately
-            }
-            
-            function draw(e) {
-                if (!isDrawing) return;
-                
-                const rect = maskCanvas.getBoundingClientRect();
-                const currentX = e.clientX - rect.left;
-                const currentY = e.clientY - rect.top;
-                
-                maskCtx.beginPath();
-                maskCtx.arc(currentX, currentY, brushSize / 2, 0, Math.PI * 2);
-                maskCtx.fillStyle = 'rgba(255, 255, 255, 1)';
-                maskCtx.fill();
-                
-                // Draw a line between points for smooth drawing
-                maskCtx.beginPath();
-                maskCtx.lineWidth = brushSize;
-                maskCtx.lineCap = 'round';
-                maskCtx.strokeStyle = 'rgba(255, 255, 255, 1)';
-                maskCtx.moveTo(lastX, lastY);
-                maskCtx.lineTo(currentX, currentY);
-                maskCtx.stroke();
-                
-                lastX = currentX;
-                lastY = currentY;
-                
-                // Update mask data
-                maskData = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
-            }
-            
-            function stopDrawing() {
-                isDrawing = false;
-            }
-            
-            // Touch event handlers
-            function handleTouchStart(e) {
-                e.preventDefault();
-                const touch = e.touches[0];
-                const mouseEvent = new MouseEvent('mousedown', {
-                    clientX: touch.clientX,
-                    clientY: touch.clientY
-                });
-                maskCanvas.dispatchEvent(mouseEvent);
-            }
-            
-            function handleTouchMove(e) {
-                e.preventDefault();
-                const touch = e.touches[0];
-                const mouseEvent = new MouseEvent('mousemove', {
-                    clientX: touch.clientX,
-                    clientY: touch.clientY
-                });
-                maskCanvas.dispatchEvent(mouseEvent);
-            }
             
             // File upload handling
             fileUpload.addEventListener('click', function() {
                 imageInput.click();
-                logDebug("File upload area clicked");
-            });
-            
-            imageInput.addEventListener('click', function(e) {
-                e.stopPropagation();
-                logDebug("Image input clicked");
             });
             
             fileUpload.addEventListener('dragover', function(e) {
                 e.preventDefault();
-                e.stopPropagation();
                 this.style.borderColor = '#3498db';
                 this.style.backgroundColor = '#f0f8ff';
-                logDebug("Drag over file upload area");
             });
             
             fileUpload.addEventListener('dragleave', function(e) {
                 e.preventDefault();
-                e.stopPropagation();
                 this.style.borderColor = '#3498db';
                 this.style.backgroundColor = 'transparent';
-                logDebug("Drag leave file upload area");
             });
             
             fileUpload.addEventListener('drop', function(e) {
                 e.preventDefault();
-                e.stopPropagation();
-                logDebug("File dropped");
                 this.style.borderColor = '#3498db';
                 this.style.backgroundColor = 'transparent';
                 
@@ -883,31 +501,23 @@
                 }
             });
             
-            imageInput.addEventListener('change', function(e) {
-                logDebug("File input changed");
-                if (this.files && this.files.length > 0) {
+            imageInput.addEventListener('change', function() {
+                if (this.files.length > 0) {
                     handleFileUpload(this.files[0]);
                 }
             });
             
             function handleFileUpload(file) {
-                logDebug(`Processing file: ${file.name} (${file.type})`);
-                
                 if (!file.type.match('image.*')) {
-                    logDebug("Error: Not an image file", true);
                     alert('Please select an image file.');
                     return;
                 }
                 
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    logDebug("File loaded successfully");
                     preview.src = e.target.result;
                     preview.style.display = 'block';
                     loadImage(e.target.result);
-                };
-                reader.onerror = function(e) {
-                    logDebug(`Error reading file: ${e.target.error}`, true);
                 };
                 reader.readAsDataURL(file);
             }
@@ -915,13 +525,7 @@
             function loadImage(src) {
                 originalImage = new Image();
                 originalImage.onload = function() {
-                    logDebug(`Image loaded: ${this.width}x${this.height}`);
-                    if (enableMasking.checked) {
-                        setupMaskCanvas();
-                    }
-                };
-                originalImage.onerror = function() {
-                    logDebug("Error: Failed to load image", true);
+                    // Image is loaded and ready for processing
                 };
                 originalImage.src = src;
             }
@@ -945,7 +549,6 @@
                 colorOptions.style.display = 'none';
                 gradientOptions.style.display = 'none';
                 risoOptions.style.display = 'none';
-                mixedRisoOptions.style.display = 'none';
                 
                 if (this.value === 'custom') {
                     colorOptions.style.display = 'block';
@@ -953,14 +556,7 @@
                     gradientOptions.style.display = 'block';
                 } else if (this.value === 'riso') {
                     risoOptions.style.display = 'block';
-                } else if (this.value === 'mixed-riso') {
-                    mixedRisoOptions.style.display = 'block';
                 }
-            });
-            
-            // RISO mix ratio handling
-            risoMixRatioSlider.addEventListener('input', function() {
-                risoMixRatioValue.textContent = this.value + '%';
             });
             
             // Color presets
@@ -1045,222 +641,60 @@
             // Main conversion function
             convertBtn.addEventListener('click', function() {
                 if (!originalImage) {
-                    logDebug("Error: No image loaded", true);
                     alert('Please upload an image first.');
                     return;
                 }
                 
-                logDebug("Starting conversion process...");
                 loading.style.display = 'block';
                 asciiOutput.style.display = 'none';
                 
                 // Allow the UI to update before starting the conversion
                 setTimeout(() => {
-                    try {
-                        const mode = document.getElementById('mode').value;
-                        const charsetType = charsetSelect.value;
-                        const resolution = parseInt(resolutionSlider.value);
-                        const contrast = parseFloat(contrastSlider.value) / 100;
-                        const brightness = parseFloat(brightnessSlider.value) / 100;
-                        const aspectRatio = parseFloat(aspectRatioSlider.value);
-                        const colorMode = colorModeSelect.value;
-                        
-                        let chars;
-                        if (charsetType === 'standard') {
-                            chars = '@%#*+=-:. ';
-                        } else if (charsetType === 'simple') {
-                            chars = '#. ';
-                        } else if (charsetType === 'complex') {
-                            chars = '$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\\|()1{}[]?-_+~<>i!lI;:,"^`\'. ';
-                        } else if (charsetType === 'bold-complex') {
-                            chars = '<b>$@B%8&WM#*</b>oahkbdpqwmZO0QLCJUYXzcvunxrjft/\\|()1{}[]?-_+~<>i!lI;:,"^`\'. ';
-                        } else if (charsetType === 'arabic') {
-                            chars = 'ابتثجحخدذرزسشصضطظعغفقكلمنهويءآأؤإئىةـڢڤڥڦڧڨݐݑݒݓݔݕݖݗݘݙݚݛݜݝݞݟݠݡࡀࡁࡂࡃࡄࡅࡆࡇࡈࡉࡊࡋࡌࡍࡎࡏࡐࡑࡒࡓࡔࡕࡖࡗࡘ ';
-                        } else if (charsetType === 'korean') {
-                            chars = '가각갂갃간갅갆갇갈갉갊갋갌갍갎갏감갑값갓갔강갖갗갘같갚갛개객갞갟갠갡갢갣갤갥갦갧갨갩갪갫갬갭갮갯갰갱갲갳갴갵갶갷갸갹갺갻갼갽갾갿걀걁걂걃걄걅걆걇걈걉걊걋걌걍걎걏걐걑걒걓걔걕걖걗걘걙걚걛걜걝걞걟걠걡걢걣걤걥걦걧걨걩걪걫걬걭걮걯거걱걲걳건걵걶걷걸걹걺걻걼걽걾걿검겁겂것겄겅겆겇겈겉겊겋게겍겎겏겐겑겒겓겔겕겖겗겘겙겚겛겜겝겞겟겠겡겢겣겤겥겦겧겨격겪겫견겭겮겯결겱겲겳겴겵겶겷겸겹겺겻겼경겾겿곀곁곂곃계곅곆곇곈곉곊곋곌곍곎곏곐곑곒곓곔곕곖곗곘곙곚곛곜곝곞곟고곡곢곣곤곥곦곧골곩곪곫곬곭곮곯곰곱곲곳곴공곶곷곸곹곺곻과곽곾곿관괁괂괃괄괅괆괇괈괉괊괋괌괍괎괏괐광괒괓괔괕괖괗괘괙괚괛괜괝괞괟괠괡괢괣괤괥괦괧괨괩괪괫괬괭괮괯괰괱괲괳괴괵괶괷괸괹괺괻괼괽괾괿굀굁굂굃굄굅굆굇굈굉굊굋굌굍굎굏교굑굒굓굔굕굖굗굘굙굚굛굜굝굞굟굠굡굢굣굤굥굦굧굨굩굪굫구국굮굯군굱굲굳굴굵굶굷굸굹굺굻굼굽굾굿궀궁궂궃궄궅궆궇궈궉궊궋권궍궎궏궐궑궒궓궔궕궖궗궘궙궚궛궜궝궞궟궠궡궢궣궤궥궦궧궨궩궪궫궬궭궮궯궰궱궲궳궴궵궶궷궸궹궺궻궼궽궾궿귀귁귂귃귄귅귆귇귈귉귊귋귌귍귎귏귐귑귒귓귔귕귖귗귘귙귚귛규귝귞귟균귡귢귣귤귥귦귧귨귩귪귫귬귭귮귯귰귱귲귳귴귵귶귷그극귺귻근귽귾귿글긁긂긃긄긅긆긇금급긊긋긌긍긎긏긐긑긒긓긔긕긖긗긘긙긚긛긜긝긞긟긠긡긢긣긤긥긦긧긨긩긪긫긬긭긮긯기긱긲긳긴긵긶긷길긹긺긻긼긽긾긿김깁깂깃깄깅깆깇깈깉깊깋까깍깎깏깐깑깒깓깔깕깖깗깘깙깚깛깜깝깞깟깠깡깢깣깤깥깦깧깨깩깪깫깬깭깮깯깰깱깲깳깴깵깶깷깸깹깺깻깼깽깾깿꺀꺁꺂꺃꺄꺅꺆꺇꺈꺉꺊꺋꺌꺍꺎꺏꺐꺑꺒꺓꺔꺕꺖꺗꺘꺙꺚꺛꺜꺝꺞꺟꺠꺡꺢꺣꺤꺥꺦꺧꺨꺩꺪꺫꺬꺭꺮꺯꺰꺱꺲꺳꺴꺵꺶꺷꺸꺹꺺꺻꺼꺽꺾꺿껀껁껂껃껄껅껆껇껈껉껊껋껌껍껎껏껐껑껒껓껔껕껖껗께껙껚껛껜껝껞껟껠껡껢껣껤껥껦껧껨껩껪껫껬껭껮껯껰껱껲껳껴껵껶껷껸껹껺껻껼껽껾껿꼀꼁꼂꼃꼄꼅꼆꼇꼈꼉꼊꼋꼌꼍꼎꼏꼐꼑꼒꼓꼔꼕꼖꼗꼘꼙꼚꼛꼜꼝꼞꼟꼠꼡꼢꼣꼤꼥꼦꼧꼨꼩꼪꼫꼬꼭꼮꼯꼰꼱꼲꼳꼴꼵꼶꼷꼸꼹꼺꼻꼼꼽꼾꼿꽀꽁꽂꽃꽄꽅꽆꽇꽈꽉꽊꽋꽌꽍꽎꽏꽐꽑꽒꽓꽔꽕꽖꽗꽘꽙꽚꽛꽜꽝꽞꽟꽠꽡꽢꽣꽤꽥꽦꽧꽨꽩꽪꽫꽬꽭꽮꽯꽰꽱꽲꽳꽴꽵꽶꽷꽸꽹꽺꽻꽼꽽꽾꽿꾀꾁꾂꾃꾄꾅꾆꾇꾈꾉꾊꾋꾌꾍꾎꾏꾐꾑꾒꾓꾔꾕꾖꾗꾘꾙꾚꾛꾜꾝꾞꾟꾠꾡꾢꾣꾤꾥꾦꾧꾨꾩꾪꾫꾬꾭꾮꾯꾰꾱꾲꾳꾴꾵꾶꾷꾸꾹꾺꾻꾼꾽꾾꾿꿀꿁꿂꿃꿄꿅꿆꿇꿈꿉꿊꿋꿌꿍꿎꿏꿐꿑꿒꿓꿔꿕꿖꿗꿘꿙꿚꿛꿜꿝꿞꿟꿠꿡꿢꿣꿤꿥꿦꿧꿨꿩꿪꿫꿬꿭꿮꿯꿰꿱꿲꿳꿴꿵꿶꿷꿸꿹꿺꿻꿼꿽꿾꿿 ';
-                        } else {
-                            chars = customCharset.value || '@%#*+=-:. ';
-                        }
-                        
-                        // Apply color mode inversion if needed
-                        let isInverted = colorMode === 'inverted';
-                        if (isInverted) {
-                            chars = chars.split('').reverse().join('');
-                        }
-                        
-                        // Process the image based on masking
-                        let result;
-                        if (enableMasking.checked && maskData) {
-                            logDebug("Processing with masking enabled");
-                            result = convertMaskedToAscii(originalImage, chars, resolution, contrast, brightness, mode, 
-                                                         foregroundColorModeSelect.value, backgroundColorModeSelect.value, aspectRatio);
-                        } else {
-                            logDebug("Processing without masking");
-                            result = convertToAscii(originalImage, chars, resolution, contrast, brightness, mode, colorMode, aspectRatio);
-                        }
-                        
-                        // Display the result
-                        if (colorMode === 'none' && !enableMasking.checked) {
-                            asciiOutput.innerHTML = result.text;
-                            asciiOutput.style.color = textColorInput.value;
-                        } else {
-                            asciiOutput.innerHTML = result.html;
-                        }
-                        
-                        processedAscii = result;
-                        logDebug("Conversion completed successfully");
-                        loading.style.display = 'none';
-                        asciiOutput.style.display = 'block';
-                    } catch (error) {
-                        logDebug(`Error during conversion: ${error.message}`, true);
-                        loading.style.display = 'none';
-                        asciiOutput.style.display = 'block';
-                        alert('An error occurred during conversion. Please try again.');
+                    const mode = document.getElementById('mode').value;
+                    const charsetType = charsetSelect.value;
+                    const resolution = parseInt(resolutionSlider.value);
+                    const contrast = parseFloat(contrastSlider.value) / 100;
+                    const brightness = parseFloat(brightnessSlider.value) / 100;
+                    const aspectRatio = parseFloat(aspectRatioSlider.value);
+                    const invert = document.getElementById('invert').checked;
+                    const colorMode = colorModeSelect.value;
+                    
+                    let chars;
+                    if (charsetType === 'standard') {
+                        chars = '@%#*+=-:. ';
+                    } else if (charsetType === 'simple') {
+                        chars = '#. ';
+                    } else if (charsetType === 'complex') {
+                        chars = '$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\\|()1{}[]?-_+~<>i!lI;:,"^`\'. ';
+                    } else if (charsetType === 'arabic') {
+                        chars = 'ابتثجحخدذرزسشصضطظعغفقكلمنهويءآأؤإئىةـڢڤڥڦڧڨݐݑݒݓݔݕݖݗݘݙݚݛݜݝݞݟݠݡࡀࡁࡂࡃࡄࡅࡆࡇࡈࡉࡊࡋࡌࡍࡎࡏࡐࡑࡒࡓࡔࡕࡖࡗࡘ ';
+                    } else if (charsetType === 'korean') {
+                        chars = '가각갂갃간갅갆갇갈갉갊갋갌갍갎갏감갑값갓갔강갖갗갘같갚갛개객갞갟갠갡갢갣갤갥갦갧갨갩갪갫갬갭갮갯갰갱갲갳갴갵갶갷갸갹갺갻갼갽갾갿걀걁걂걃걄걅걆걇걈걉걊걋걌걍걎걏걐걑걒걓걔걕걖걗걘걙걚걛걜걝걞걟걠걡걢걣걤걥걦걧걨걩걪걫걬걭걮걯거걱걲걳건걵걶걷걸걹걺걻걼걽걾걿검겁겂것겄겅겆겇겈겉겊겋게겍겎겏겐겑겒겓겔겕겖겗겘겙겚겛겜겝겞겟겠겡겢겣겤겥겦겧겨격겪겫견겭겮겯결겱겲겳겴겵겶겷겸겹겺겻겼경겾겿곀곁곂곃계곅곆곇곈곉곊곋곌곍곎곏곐곑곒곓곔곕곖곗곘곙곚곛곜곝곞곟고곡곢곣곤곥곦곧골곩곪곫곬곭곮곯곰곱곲곳곴공곶곷곸곹곺곻과곽곾곿관괁괂괃괄괅괆괇괈괉괊괋괌괍괎괏괐광괒괓괔괕괖괗괘괙괚괛괜괝괞괟괠괡괢괣괤괥괦괧괨괩괪괫괬괭괮괯괰괱괲괳괴괵괶괷괸괹괺괻괼괽괾괿굀굁굂굃굄굅굆굇굈굉굊굋굌굍굎굏교굑굒굓굔굕굖굗굘굙굚굛굜굝굞굟굠굡굢굣굤굥굦굧굨굩굪굫구국굮굯군굱굲굳굴굵굶굷굸굹굺굻굼굽굾굿궀궁궂궃궄궅궆궇궈궉궊궋권궍궎궏궐궑궒궓궔궕궖궗궘궙궚궛궜궝궞궟궠궡궢궣궤궥궦궧궨궩궪궫궬궭궮궯궰궱궲궳궴궵궶궷궸궹궺궻궼궽궾궿귀귁귂귃귄귅귆귇귈귉귊귋귌귍귎귏귐귑귒귓귔귕귖귗귘귙귚귛규귝귞귟균귡귢귣귤귥귦귧귨귩귪귫귬귭귮귯귰귱귲귳귴귵귶귷그극귺귻근귽귾귿글긁긂긃긄긅긆긇금급긊긋긌긍긎긏긐긑긒긓긔긕긖긗긘긙긚긛긜긝긞긟긠긡긢긣긤긥긦긧긨긩긪긫긬긭긮긯기긱긲긳긴긵긶긷길긹긺긻긼긽긾긿김깁깂깃깄깅깆깇깈깉깊깋까깍깎깏깐깑깒깓깔깕깖깗깘깙깚깛깜깝깞깟깠깡깢깣깤깥깦깧깨깩깪깫깬깭깮깯깰깱깲깳깴깵깶깷깸깹깺깻깼깽깾깿꺀꺁꺂꺃꺄꺅꺆꺇꺈꺉꺊꺋꺌꺍꺎꺏꺐꺑꺒꺓꺔꺕꺖꺗꺘꺙꺚꺛꺜꺝꺞꺟꺠꺡꺢꺣꺤꺥꺦꺧꺨꺩꺪꺫꺬꺭꺮꺯꺰꺱꺲꺳꺴꺵꺶꺷꺸꺹꺺꺻꺼꺽꺾꺿껀껁껂껃껄껅껆껇껈껉껊껋껌껍껎껏껐껑껒껓껔껕껖껗께껙껚껛껜껝껞껟껠껡껢껣껤껥껦껧껨껩껪껫껬껭껮껯껰껱껲껳껴껵껶껷껸껹껺껻껼껽껾껿꼀꼁꼂꼃꼄꼅꼆꼇꼈꼉꼊꼋꼌꼍꼎꼏꼐꼑꼒꼓꼔꼕꼖꼗꼘꼙꼚꼛꼜꼝꼞꼟꼠꼡꼢꼣꼤꼥꼦꼧꼨꼩꼪꼫꼬꼭꼮꼯꼰꼱꼲꼳꼴꼵꼶꼷꼸꼹꼺꼻꼼꼽꼾꼿꽀꽁꽂꽃꽄꽅꽆꽇꽈꽉꽊꽋꽌꽍꽎꽏꽐꽑꽒꽓꽔꽕꽖꽗꽘꽙꽚꽛꽜꽝꽞꽟꽠꽡꽢꽣꽤꽥꽦꽧꽨꽩꽪꽫꽬꽭꽮꽯꽰꽱꽲꽳꽴꽵꽶꽷꽸꽹꽺꽻꽼꽽꽾꽿꾀꾁꾂꾃꾄꾅꾆꾇꾈꾉꾊꾋꾌꾍꾎꾏꾐꾑꾒꾓꾔꾕꾖꾗꾘꾙꾚꾛꾜꾝꾞꾟꾠꾡꾢꾣꾤꾥꾦꾧꾨꾩꾪꾫꾬꾭꾮꾯꾰꾱꾲꾳꾴꾵꾶꾷꾸꾹꾺꾻꾼꾽꾾꾿꿀꿁꿂꿃꿄꿅꿆꿇꿈꿉꿊꿋꿌꿍꿎꿏꿐꿑꿒꿓꿔꿕꿖꿗꿘꿙꿚꿛꿜꿝꿞꿟꿠꿡꿢꿣꿤꿥꿦꿧꿨꿩꿪꿫꿬꿭꿮꿯꿰꿱꿲꿳꿴꿵꿶꿷꿸꿹꿺꿻꿼꿽꿾꿿 ';
+                    } else {
+                        chars = customCharset.value || '@%#*+=-:. ';
                     }
+                    
+                    // Invert character set if needed
+                    if (invert) {
+                        chars = chars.split('').reverse().join('');
+                    }
+                    
+                    // Process the image
+                    const result = convertToAscii(originalImage, chars, resolution, contrast, brightness, mode, colorMode, aspectRatio);
+                    
+                    // Display the result
+                    if (colorMode === 'none') {
+                        asciiOutput.innerHTML = result.text;
+                        asciiOutput.style.color = textColorInput.value;
+                    } else {
+                        asciiOutput.innerHTML = result.html;
+                    }
+                    
+                    processedAscii = result;
+                    loading.style.display = 'none';
+                    asciiOutput.style.display = 'block';
                 }, 100);
             });
-            
-            // Function to convert image to ASCII with masking
-            function convertMaskedToAscii(img, charset, resolution, contrast, brightness, mode, fgColorMode, bgColorMode, aspectRatio) {
-                // Create canvas for image processing
-                const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
-                
-                // Calculate dimensions
-                let width, height;
-                const maxWidth = resolution;
-                const origAspectRatio = img.width / img.height;
-                
-                if (origAspectRatio > 1) {
-                    width = maxWidth;
-                    height = Math.floor(width / origAspectRatio / aspectRatio);
-                } else {
-                    height = Math.floor(maxWidth / aspectRatio);
-                    width = Math.floor(height * origAspectRatio);
-                }
-                
-                canvas.width = width;
-                canvas.height = height;
-                
-                // Draw image with adjustments
-                ctx.drawImage(img, 0, 0, width, height);
-                
-                // Apply contrast and brightness
-                const imageData = ctx.getImageData(0, 0, width, height);
-                const pixels = imageData.data;
-                
-                for (let i = 0; i < pixels.length; i += 4) {
-                    // Apply brightness
-                    pixels[i] = Math.min(255, pixels[i] * brightness);
-                    pixels[i + 1] = Math.min(255, pixels[i + 1] * brightness);
-                    pixels[i + 2] = Math.min(255, pixels[i + 2] * brightness);
-                    
-                    // Apply contrast
-                    const factor = (259 * (contrast + 255)) / (255 * (259 - contrast));
-                    pixels[i] = factor * (pixels[i] - 128) + 128;
-                    pixels[i + 1] = factor * (pixels[i + 1] - 128) + 128;
-                    pixels[i + 2] = factor * (pixels[i + 2] - 128) + 128;
-                }
-                
-                ctx.putImageData(imageData, 0, 0);
-                
-                // Get mask proportions
-                const maskScaleX = maskCanvas.width / width;
-                const maskScaleY = maskCanvas.height / height;
-                
-                // Create ASCII output
-                let asciiText = '';
-                let asciiHtml = '';
-                
-                for (let y = 0; y < height; y++) {
-                    for (let x = 0; x < width; x++) {
-                        const pixelData = ctx.getImageData(x, y, 1, 1).data;
-                        const r = pixelData[0];
-                        const g = pixelData[1];
-                        const b = pixelData[2];
-                        
-                        // Calculate pixel brightness (weighted RGB)
-                        let brightness;
-                        if (mode === 'detailed' || mode === 'realistic') {
-                            brightness = 0.299 * r + 0.587 * g + 0.114 * b;
-                        } else {
-                            brightness = (r + g + b) / 3;
-                        }
-                        
-                        // Map brightness to character
-                        let charIndex;
-                        const len = charset.length - 1;
-                        if (mode === 'stylized') {
-                            charIndex = Math.floor((Math.pow(brightness / 255, 1.5)) * len);
-                        } else if (mode === 'realistic') {
-                            const adjusted = brightness / 255;
-                            const enhanced = adjusted < 0.5 
-                                ? 0.5 * Math.pow(adjusted * 2, 0.8)
-                                : 0.5 + 0.5 * Math.pow((adjusted - 0.5) * 2, 1.2);
-                            charIndex = Math.floor(enhanced * len);
-                        } else {
-                            charIndex = Math.floor((brightness / 255) * len);
-                        }
-                        
-                        const char = charset[charIndex];
-                        asciiText += char;
-                        
-                        // Check if this pixel is part of the mask
-                        const maskX = Math.floor(x * maskScaleX);
-                        const maskY = Math.floor(y * maskScaleY);
-                        const maskIndex = (maskY * maskCanvas.width + maskX) * 4;
-                        const isMasked = maskData && maskData.data[maskIndex + 3] > 0;
-                        
-                        // Apply appropriate color mode
-                        const colorMode = isMasked ? fgColorMode : bgColorMode;
-                        
-                        // Colour handling for HTML output
-                        if (colorMode === 'none') {
-                            asciiHtml += char;
-                        } else if (colorMode === 'original') {
-                            asciiHtml += `<span style="color: rgb(${r}, ${g}, ${b});">${char}</span>`;
-                        } else if (colorMode === 'custom') {
-                            const color = customColorInput.value;
-                            const opacity = brightness / 255;
-                            asciiHtml += `<span style="color: ${color}; opacity: ${opacity};">${char}</span>`;
-                        } else if (colorMode === 'gradient') {
-                            const startColor = hexToRgb(document.getElementById('gradient-start').value);
-                            const endColor = hexToRgb(document.getElementById('gradient-end').value);
-                            const ratio = brightness / 255;
-                            
-                            const r = Math.floor(startColor.r + ratio * (endColor.r - startColor.r));
-                            const g = Math.floor(startColor.g + ratio * (endColor.g - startColor.g));
-                            const b = Math.floor(startColor.b + ratio * (endColor.b - startColor.b));
-                            
-                            asciiHtml += `<span style="color: rgb(${r}, ${g}, ${b});">${char}</span>`;
-                        } else if (colorMode === 'riso') {
-                            const risoColor = document.getElementById('riso-color').value;
-                            const opacity = brightness / 255;
-                            asciiHtml += `<span style="color: ${risoColor}; opacity: ${opacity};">${char}</span>`;
-                        } else if (colorMode === 'mixed-riso') {
-                            const primaryColor = document.getElementById('primary-riso-color').value;
-                            const secondaryColor = document.getElementById('secondary-riso-color').value;
-                            const mixRatio = parseInt(document.getElementById('riso-mix-ratio').value) / 100;
-                            const opacity = brightness / 255;
-                            
-                            // Determine which color to use based on brightness and mix ratio
-                            const color = brightness / 255 > mixRatio ? primaryColor : secondaryColor;
-                            asciiHtml += `<span style="color: ${color}; opacity: ${opacity};">${char}</span>`;
-                        } else if (colorMode === 'inverted') {
-                            asciiHtml += `<span style="color: rgb(${255-r}, ${255-g}, ${255-b});">${char}</span>`;
-                        } else {
-                            asciiHtml += char;
-                        }
-                    }
-                    asciiText += '\n';
-                    asciiHtml += '<br>';
-                }
-                
-                return {
-                    text: asciiText,
-                    html: asciiHtml
-                };
-            }
             
             // Function to convert image to ASCII
             function convertToAscii(img, charset, resolution, contrast, brightness, mode, colorMode, aspectRatio) {
@@ -1275,9 +709,9 @@
                 
                 if (origAspectRatio > 1) {
                     width = maxWidth;
-                    height = Math.floor(width / origAspectRatio / aspectRatio);
+                    height = Math.floor(width / origAspectRatio / aspectRatio); // User-adjustable aspect ratio compensation
                 } else {
-                    height = Math.floor(maxWidth / aspectRatio);
+                    height = Math.floor(maxWidth / aspectRatio); // User-adjustable aspect ratio compensation
                     width = Math.floor(height * origAspectRatio);
                 }
                 
@@ -1320,8 +754,10 @@
                         // Calculate pixel brightness (weighted RGB)
                         let brightness;
                         if (mode === 'detailed' || mode === 'realistic') {
+                            // More weight to green for better detail perception
                             brightness = 0.299 * r + 0.587 * g + 0.114 * b;
                         } else {
+                            // Standard brightness calculation
                             brightness = (r + g + b) / 3;
                         }
                         
@@ -1329,14 +765,17 @@
                         let charIndex;
                         const len = charset.length - 1;
                         if (mode === 'stylized') {
+                            // Non-linear mapping for stylized effect
                             charIndex = Math.floor((Math.pow(brightness / 255, 1.5)) * len);
                         } else if (mode === 'realistic') {
+                            // Enhance mid-tones for more realistic representation
                             const adjusted = brightness / 255;
                             const enhanced = adjusted < 0.5 
                                 ? 0.5 * Math.pow(adjusted * 2, 0.8)
                                 : 0.5 + 0.5 * Math.pow((adjusted - 0.5) * 2, 1.2);
                             charIndex = Math.floor(enhanced * len);
                         } else {
+                            // Linear mapping for classic mode
                             charIndex = Math.floor((brightness / 255) * len);
                         }
                         
@@ -1350,6 +789,7 @@
                             asciiHtml += `<span style="color: rgb(${r}, ${g}, ${b});">${char}</span>`;
                         } else if (colorMode === 'custom') {
                             const color = customColorInput.value;
+                            // Apply opacity based on brightness
                             const opacity = brightness / 255;
                             asciiHtml += `<span style="color: ${color}; opacity: ${opacity};">${char}</span>`;
                         } else if (colorMode === 'gradient') {
@@ -1364,18 +804,9 @@
                             asciiHtml += `<span style="color: rgb(${r}, ${g}, ${b});">${char}</span>`;
                         } else if (colorMode === 'riso') {
                             const risoColor = document.getElementById('riso-color').value;
+                            // Apply RISO color with brightness-based opacity for halftone-like effect
                             const opacity = brightness / 255;
                             asciiHtml += `<span style="color: ${risoColor}; opacity: ${opacity};">${char}</span>`;
-                        } else if (colorMode === 'mixed-riso') {
-                            const primaryColor = document.getElementById('primary-riso-color').value;
-                            const secondaryColor = document.getElementById('secondary-riso-color').value;
-                            const mixRatio = parseInt(document.getElementById('riso-mix-ratio').value) / 100;
-                            const opacity = brightness / 255;
-                            
-                            const color = brightness / 255 > mixRatio ? primaryColor : secondaryColor;
-                            asciiHtml += `<span style="color: ${color}; opacity: ${opacity};">${char}</span>`;
-                        } else if (colorMode === 'inverted') {
-                            asciiHtml += `<span style="color: rgb(${255-r}, ${255-g}, ${255-b});">${char}</span>`;
                         }
                     }
                     asciiText += '\n';
@@ -1398,165 +829,61 @@
                 } : null;
             }
             
-            // Download as PNG
-            downloadPngBtn.addEventListener('click', function() {
-                if (!processedAscii) {
-                    alert('Please convert an image to ASCII art first.');
-                    return;
-                }
-                
-                try {
-                    // Create a temporary container with proper styling
-                    const container = document.createElement('div');
-                    container.style.position = 'absolute';
-                    container.style.left = '-9999px';
-                    container.style.fontFamily = 'monospace';
-                    container.style.lineHeight = lineHeightSlider.value;
-                    container.style.fontSize = fontSizeSlider.value + 'px';
-                    container.style.letterSpacing = letterSpacingSlider.value + 'em';
-                    container.style.whiteSpace = 'pre';
-                    container.style.backgroundColor = bgColorInput.value;
-                    container.style.padding = '20px';
-                    container.innerHTML = colorModeSelect.value === 'none' ? 
-                        `<div style="color: ${textColorInput.value};">${processedAscii.text.replace(/\n/g, '<br>')}</div>` : 
-                        processedAscii.html;
-                    
-                    document.body.appendChild(container);
-                    
-                    logDebug("Creating PNG from ASCII art...");
-                    
-                    // Use html2canvas to take screenshot
-                    html2canvas(container).then(canvas => {
-                        try {
-                            const link = document.createElement('a');
-                            link.download = 'ascii_art.png';
-                            link.href = canvas.toDataURL('image/png');
-                            link.click();
-                            logDebug("PNG created and download initiated");
-                        } catch (err) {
-                            logDebug(`Error creating download link: ${err.message}`, true);
-                            alert('There was an error creating the download. Please try again.');
-                        } finally {
-                            // Clean up
-                            document.body.removeChild(container);
-                        }
-                    }).catch(error => {
-                        logDebug(`Error generating PNG: ${error.message}`, true);
-                        alert('There was an error generating the PNG. Please try again.');
-                        // Clean up in case of error
-                        if (document.body.contains(container)) {
-                            document.body.removeChild(container);
-                        }
-                    });
-                } catch (error) {
-                    logDebug(`Unexpected error in PNG download: ${error.message}`, true);
-                    alert('There was an unexpected error. Please try again.');
-                }
-            });
-            
-            // Download as TXT
+            // Download functions
             downloadTxtBtn.addEventListener('click', function() {
-                if (!processedAscii) {
-                    alert('Please convert an image to ASCII art first.');
-                    return;
-                }
+                if (!processedAscii) return;
                 
-                try {
-                    const blob = new Blob([processedAscii.text], { type: 'text/plain' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = 'ascii_art.txt';
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(url);
-                    logDebug("Text file download initiated");
-                } catch (error) {
-                    logDebug(`Error downloading text file: ${error.message}`, true);
-                    alert('There was an error downloading the file. Please try again.');
-                }
+                const blob = new Blob([processedAscii.text], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'ascii_art.txt';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
             });
             
-            // Download as HTML
             downloadHtmlBtn.addEventListener('click', function() {
-                if (!processedAscii) {
-                    alert('Please convert an image to ASCII art first.');
-                    return;
-                }
+                if (!processedAscii) return;
                 
-                try {
-                    const style = `
-                        body {
-                            background-color: ${bgColorInput.value};
-                            font-family: monospace;
-                            line-height: ${lineHeightSlider.value};
-                            font-size: ${fontSizeSlider.value}px;
-                            letter-spacing: ${letterSpacingSlider.value}em;
-                            white-space: pre;
-                        }
-                    `;
-                    
-                    const html = `
-                        <!DOCTYPE html>
-                        <html>
-                        <head>
-                            <meta charset="UTF-8">
-                            <title>ASCII Art</title>
-                            <style>${style}</style>
-                            <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
-                            <script>
-                                function downloadAsPNG() {
-                                    const element = document.getElementById('ascii-art');
-                                    html2canvas(element).then(canvas => {
-                                        const link = document.createElement('a');
-                                        link.download = 'ascii_art.png';
-                                        link.href = canvas.toDataURL('image/png');
-                                        link.click();
-                                    });
-                                }
-                            </script>
-                        </head>
-                        <body>
-                            <div id="ascii-art">
-                                ${colorModeSelect.value === 'none' ? 
-                                  `<div style="color: ${textColorInput.value};">${processedAscii.text.replace(/\n/g, '<br>')}</div>` : 
-                                  processedAscii.html}
-                            </div>
-                            <div style="margin-top: 20px;">
-                                <button onclick="downloadAsPNG()" style="padding: 10px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer;">
-                                    Download as PNG
-                                </button>
-                            </div>
-                        </body>
-                        </html>
-                    `;
-                    
-                    const blob = new Blob([html], { type: 'text/html' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = 'ascii_art.html';
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(url);
-                    logDebug("HTML file download initiated");
-                } catch (error) {
-                    logDebug(`Error downloading HTML file: ${error.message}`, true);
-                    alert('There was an error downloading the file. Please try again.');
-                }
+                const style = `
+                    body {
+                        background-color: ${bgColorInput.value};
+                        font-family: monospace;
+                        line-height: ${lineHeightSlider.value};
+                        font-size: ${fontSizeSlider.value}px;
+                        letter-spacing: ${letterSpacingSlider.value}em;
+                        white-space: pre;
+                    }
+                `;
+                
+                const html = `
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <meta charset="UTF-8">
+                        <title>ASCII Art</title>
+                        <style>${style}</style>
+                    </head>
+                    <body>
+                        ${colorModeSelect.value === 'none' ? 
+                          `<div style="color: ${textColorInput.value};">${processedAscii.text.replace(/\n/g, '<br>')}</div>` : 
+                          processedAscii.html}
+                    </body>
+                    </html>
+                `;
+                
+                const blob = new Blob([html], { type: 'text/html' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'ascii_art.html';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
             });
-            
-            // Toggle debug info
-            toggleDebugBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                debugInfo.style.display = debugInfo.style.display === 'none' ? 'block' : 'none';
-            });
-            
-            // Log initial messages
-            logDebug("ASCII Art Converter initialized");
-            logDebug("Click 'Upload Image' to begin");
         });
     </script>
 </body>
