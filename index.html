@@ -21,6 +21,7 @@
             border-radius: 5px;
             background: #ddd;
             outline: none;
+            background-color: #e0e0e0;
         }
         
         input[type="range"]::-webkit-slider-thumb {
@@ -29,7 +30,29 @@
             width: 15px;
             height: 15px;
             border-radius: 50%;
-            background: #3498db;
+            background: #fff;
+            border: 1px solid #ccc;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+            cursor: pointer;
+        }
+        
+        input[type="range"]::-moz-range-thumb {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            background: #fff;
+            border: 1px solid #ccc;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+            cursor: pointer;
+        }
+        
+        input[type="range"]::-ms-thumb {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            background: #fff;
+            border: 1px solid #ccc;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
             cursor: pointer;
         }
         
@@ -94,6 +117,7 @@
         .control-group {
             flex: 1;
             min-width: 200px;
+            margin-bottom: 10px;
         }
         
         label {
@@ -114,10 +138,12 @@
             display: flex;
             align-items: center;
             gap: 10px;
+            margin-top: 5px;
         }
         
         .slider-container input[type="range"] {
             flex: 1;
+            height: 4px;
         }
         
         .convert-btn {
@@ -173,6 +199,8 @@
             display: inline-block;
             text-align: center;
             margin-right: 10px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 14px;
         }
         
         .download-btn:hover {
@@ -302,8 +330,8 @@
                     <img id="preview" style="display: none;">
                 </div>
                 
-                <!-- Debugging info -->
-                <div id="debug-info" style="display: none; margin-top: 10px; color: #666; font-size: 12px;">
+                <!-- Debugging info (hidden by default) -->
+                <div id="debug-info" style="display: none; margin-top: 10px; color: #666; font-size: 12px; background-color: #f9f9f9; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
                     <p>Debug information will appear here</p>
                 </div>
                 
@@ -543,7 +571,6 @@
                 </div>
                 
                 <button class="convert-btn" id="convert-btn">Convert to ASCII Art</button>
-                <button id="toggle-debug" style="margin-top: 10px; background: none; border: none; color: #666; text-decoration: underline; cursor: pointer; font-size: 12px;">Show/Hide Debug Info</button>
             </div>
         </div>
         
@@ -565,6 +592,17 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // Prevent error messages from appearing in the UI
+            const originalConsoleError = console.error;
+            console.error = function() {
+                const debugInfo = document.getElementById('debug-info');
+                if (debugInfo) {
+                    const errorMsg = Array.from(arguments).join(' ');
+                    debugInfo.innerHTML += `<p style="color: red;">Error: ${errorMsg}</p>`;
+                }
+                originalConsoleError.apply(console, arguments);
+            };
+            
             // Handle any uncaught errors
             window.onerror = function(message, source, lineno, colno, error) {
                 const debugInfo = document.getElementById('debug-info');
@@ -572,7 +610,8 @@
                     debugInfo.style.display = 'block';
                     debugInfo.innerHTML += `<p style="color: red;">JavaScript Error: ${message} at line ${lineno}:${colno}</p>`;
                 }
-                return false;
+                // Return true to prevent the error from showing in console
+                return true;
             };
             // DOM elements
             const fileUpload = document.getElementById('file-upload');
@@ -1347,44 +1386,69 @@
             
             // Download as PNG
             downloadPngBtn.addEventListener('click', function() {
-                if (!processedAscii) return;
-                
-                // Check if html2canvas is loaded
-                if (typeof html2canvas === 'undefined') {
-                    alert('PNG export library is still loading. Please try again in a moment.');
+                if (!processedAscii) {
+                    alert('Please convert an image to ASCII art first.');
                     return;
                 }
                 
-                // Create a temporary container with proper styling
-                const container = document.createElement('div');
-                container.style.position = 'absolute';
-                container.style.left = '-9999px';
-                container.style.fontFamily = 'monospace';
-                container.style.lineHeight = lineHeightSlider.value;
-                container.style.fontSize = fontSizeSlider.value + 'px';
-                container.style.letterSpacing = letterSpacingSlider.value + 'em';
-                container.style.whiteSpace = 'pre';
-                container.style.backgroundColor = bgColorInput.value;
-                container.style.padding = '20px';
-                container.innerHTML = colorModeSelect.value === 'none' ? 
-                    `<div style="color: ${textColorInput.value};">${processedAscii.text.replace(/\n/g, '<br>')}</div>` : 
-                    processedAscii.html;
-                
-                document.body.appendChild(container);
-                
-                // Use html2canvas to take screenshot
-                html2canvas(container).then(canvas => {
-                    const link = document.createElement('a');
-                    link.download = 'ascii_art.png';
-                    link.href = canvas.toDataURL('image/png');
-                    link.click();
+                try {
+                    // Check if html2canvas is loaded
+                    if (typeof html2canvas === 'undefined') {
+                        // Try to load it on demand if not already loaded
+                        const script = document.createElement('script');
+                        script.src = 'https://html2canvas.hertzen.com/dist/html2canvas.min.js';
+                        script.onload = function() {
+                            // Try again after loading
+                            downloadPngBtn.click();
+                        };
+                        document.head.appendChild(script);
+                        alert('PNG export library is loading. Please try again in a moment.');
+                        return;
+                    }
                     
-                    // Clean up
-                    document.body.removeChild(container);
-                }).catch(error => {
-                    console.error('Error generating PNG:', error);
-                    alert('There was an error generating the PNG. Please try again.');
-                });
+                    // Create a temporary container with proper styling
+                    const container = document.createElement('div');
+                    container.style.position = 'absolute';
+                    container.style.left = '-9999px';
+                    container.style.fontFamily = 'monospace';
+                    container.style.lineHeight = lineHeightSlider.value;
+                    container.style.fontSize = fontSizeSlider.value + 'px';
+                    container.style.letterSpacing = letterSpacingSlider.value + 'em';
+                    container.style.whiteSpace = 'pre';
+                    container.style.backgroundColor = bgColorInput.value;
+                    container.style.padding = '20px';
+                    container.innerHTML = colorModeSelect.value === 'none' ? 
+                        `<div style="color: ${textColorInput.value};">${processedAscii.text.replace(/\n/g, '<br>')}</div>` : 
+                        processedAscii.html;
+                    
+                    document.body.appendChild(container);
+                    
+                    // Use html2canvas to take screenshot
+                    html2canvas(container).then(canvas => {
+                        try {
+                            const link = document.createElement('a');
+                            link.download = 'ascii_art.png';
+                            link.href = canvas.toDataURL('image/png');
+                            link.click();
+                        } catch (err) {
+                            console.error('Error creating download link:', err);
+                            alert('There was an error creating the download. Please try again.');
+                        } finally {
+                            // Clean up
+                            document.body.removeChild(container);
+                        }
+                    }).catch(error => {
+                        console.error('Error generating PNG:', error);
+                        alert('There was an error generating the PNG. Please try again.');
+                        // Clean up in case of error
+                        if (document.body.contains(container)) {
+                            document.body.removeChild(container);
+                        }
+                    });
+                } catch (error) {
+                    console.error('Unexpected error in PNG download:', error);
+                    alert('There was an unexpected error. Please try again.');
+                }
             });
             
             // Download as TXT
@@ -1471,22 +1535,37 @@
                     return;
                 }
                 
-                const script = document.createElement('script');
-                script.src = 'https://html2canvas.hertzen.com/dist/html2canvas.min.js';
-                script.onload = function() {
-                    console.log('html2canvas loaded successfully');
-                };
-                script.onerror = function() {
-                    console.error('Failed to load html2canvas');
-                };
-                document.head.appendChild(script);
+                try {
+                    const script = document.createElement('script');
+                    script.src = 'https://html2canvas.hertzen.com/dist/html2canvas.min.js';
+                    script.async = true;
+                    script.onload = function() {
+                        const debugInfo = document.getElementById('debug-info');
+                        if (debugInfo) {
+                            debugInfo.innerHTML += '<p>html2canvas loaded successfully</p>';
+                        }
+                    };
+                    script.onerror = function() {
+                        const debugInfo = document.getElementById('debug-info');
+                        if (debugInfo) {
+                            debugInfo.innerHTML += '<p style="color: red;">Failed to load html2canvas</p>';
+                        }
+                    };
+                    document.head.appendChild(script);
+                } catch (error) {
+                    const debugInfo = document.getElementById('debug-info');
+                    if (debugInfo) {
+                        debugInfo.innerHTML += `<p style="color: red;">Error loading html2canvas: ${error.message}</p>`;
+                    }
+                }
             }
             
             // Load html2canvas when the page loads
             loadHTML2Canvas();
             
             // Toggle debug info
-            toggleDebugBtn.addEventListener('click', function() {
+            toggleDebugBtn.addEventListener('click', function(e) {
+                e.preventDefault();
                 const debugInfo = document.getElementById('debug-info');
                 debugInfo.style.display = debugInfo.style.display === 'none' ? 'block' : 'none';
             });
