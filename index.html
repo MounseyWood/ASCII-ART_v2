@@ -319,18 +319,20 @@
                     </div>
                     
                     <div class="control-group">
-                        <label for="invert">Invert Colours</label>
-                        <input type="checkbox" id="invert">
-                    </div>
-                    
-                    <div class="control-group">
                         <label>Colour Mode</label>
                         <select id="color-mode">
                             <option value="none">No Colour</option>
+                            <option value="none-inverted">No Colour (Inverted)</option>
                             <option value="original">Original Colours</option>
+                            <option value="original-inverted">Original Colours (Inverted)</option>
                             <option value="custom">Custom Colour</option>
+                            <option value="custom-inverted">Custom Colour (Inverted)</option>
                             <option value="gradient">Gradient</option>
+                            <option value="gradient-inverted">Gradient (Inverted)</option>
                             <option value="riso">RISO Ink</option>
+                            <option value="riso-inverted">RISO Ink (Inverted)</option>
+                            <option value="mixed-riso">Mixed RISO Ink</option>
+                            <option value="mixed-riso-inverted">Mixed RISO Ink (Inverted)</option>
                         </select>
                         
                         <div id="color-options" style="display: none; margin-top: 10px;">
@@ -366,6 +368,42 @@
                                 <option value="#9164CD">Purple</option>
                                 <option value="#444444">Flat Gold</option>
                             </select>
+                        </div>
+                        
+                        <div id="mixed-riso-options" style="display: none; margin-top: 10px;">
+                            <label>Primary RISO Ink (Shadows):</label>
+                            <select id="riso-color1">
+                                <option value="#0078BF">Blue</option>
+                                <option value="#00A95C">Green</option>
+                                <option value="#FF48B0">Fluorescent Pink</option>
+                                <option value="#FF665E">Bright Red</option>
+                                <option value="#FFE800">Yellow</option>
+                                <option value="#3255A4">Medium Blue</option>
+                                <option value="#FF8B00">Orange</option>
+                                <option value="#9D2768">Burgundy</option>
+                                <option value="#00838A">Teal</option>
+                                <option value="#9164CD">Purple</option>
+                                <option value="#444444">Flat Gold</option>
+                            </select>
+                            <label>Secondary RISO Ink (Highlights):</label>
+                            <select id="riso-color2">
+                                <option value="#FF48B0">Fluorescent Pink</option>
+                                <option value="#0078BF">Blue</option>
+                                <option value="#00A95C">Green</option>
+                                <option value="#FF665E">Bright Red</option>
+                                <option value="#FFE800">Yellow</option>
+                                <option value="#3255A4">Medium Blue</option>
+                                <option value="#FF8B00">Orange</option>
+                                <option value="#9D2768">Burgundy</option>
+                                <option value="#00838A">Teal</option>
+                                <option value="#9164CD">Purple</option>
+                                <option value="#444444">Flat Gold</option>
+                            </select>
+                            <label>Mix Threshold:</label>
+                            <div class="slider-container">
+                                <input type="range" id="riso-threshold" min="0" max="255" value="128">
+                                <span class="slider-value" id="riso-threshold-value">128</span>
+                            </div>
                         </div>
                     </div>
                     
@@ -428,6 +466,7 @@
                 <div class="output-controls">
                     <button class="download-btn" id="download-txt">Download as TXT</button>
                     <button class="download-btn" id="download-html">Download as HTML</button>
+                    <button class="download-btn" id="download-png">Download as PNG</button>
                 </div>
             </div>
         </div>
@@ -447,10 +486,12 @@
             const colorOptions = document.getElementById('color-options');
             const gradientOptions = document.getElementById('gradient-options');
             const risoOptions = document.getElementById('riso-options');
+            const mixedRisoOptions = document.getElementById('mixed-riso-options');
             const colorPresets = document.querySelectorAll('.color-option');
             const customColorInput = document.getElementById('custom-color');
             const downloadTxtBtn = document.getElementById('download-txt');
             const downloadHtmlBtn = document.getElementById('download-html');
+            const downloadPngBtn = document.getElementById('download-png');
             const fontSizeSlider = document.getElementById('font-size');
             const fontSizeValue = document.getElementById('font-size-value');
             const lineHeightSlider = document.getElementById('line-height');
@@ -467,6 +508,8 @@
             const brightnessValue = document.getElementById('brightness-value');
             const aspectRatioSlider = document.getElementById('aspect-ratio');
             const aspectRatioValue = document.getElementById('aspect-ratio-value');
+            const risoThresholdSlider = document.getElementById('riso-threshold');
+            const risoThresholdValue = document.getElementById('riso-threshold-value');
             const resetDisplayBtn = document.getElementById('reset-display-settings');
             const loading = document.getElementById('loading');
             
@@ -544,18 +587,28 @@
                 aspectRatioValue.textContent = this.value;
             });
             
+            // RISO threshold handling
+            risoThresholdSlider.addEventListener('input', function() {
+                risoThresholdValue.textContent = this.value;
+            });
+            
             // Color mode handling
             colorModeSelect.addEventListener('change', function() {
                 colorOptions.style.display = 'none';
                 gradientOptions.style.display = 'none';
                 risoOptions.style.display = 'none';
+                mixedRisoOptions.style.display = 'none';
                 
-                if (this.value === 'custom') {
+                const baseColorMode = this.value.replace('-inverted', '');
+                
+                if (baseColorMode === 'custom') {
                     colorOptions.style.display = 'block';
-                } else if (this.value === 'gradient') {
+                } else if (baseColorMode === 'gradient') {
                     gradientOptions.style.display = 'block';
-                } else if (this.value === 'riso') {
+                } else if (baseColorMode === 'riso') {
                     risoOptions.style.display = 'block';
+                } else if (baseColorMode === 'mixed-riso') {
+                    mixedRisoOptions.style.display = 'block';
                 }
             });
             
@@ -593,7 +646,7 @@
             });
             
             textColorInput.addEventListener('input', function() {
-                if (colorModeSelect.value === 'none') {
+                if (colorModeSelect.value.startsWith('none')) {
                     asciiOutput.style.color = this.value;
                 }
             });
@@ -620,7 +673,7 @@
                 textColorInput.value = '#000000';
                 asciiOutput.style.backgroundColor = '#f8f8f8';
                 
-                if (colorModeSelect.value === 'none') {
+                if (colorModeSelect.value.startsWith('none')) {
                     asciiOutput.style.color = '#000000';
                 }
             });
@@ -656,7 +709,6 @@
                     const contrast = parseFloat(contrastSlider.value) / 100;
                     const brightness = parseFloat(brightnessSlider.value) / 100;
                     const aspectRatio = parseFloat(aspectRatioSlider.value);
-                    const invert = document.getElementById('invert').checked;
                     const colorMode = colorModeSelect.value;
                     
                     let chars;
@@ -674,8 +726,9 @@
                         chars = customCharset.value || '@%#*+=-:. ';
                     }
                     
-                    // Invert character set if needed
-                    if (invert) {
+                    // Check if we need to invert the charset based on color mode
+                    const isInverted = colorMode.includes('-inverted');
+                    if (isInverted) {
                         chars = chars.split('').reverse().join('');
                     }
                     
@@ -683,7 +736,7 @@
                     const result = convertToAscii(originalImage, chars, resolution, contrast, brightness, mode, colorMode, aspectRatio);
                     
                     // Display the result
-                    if (colorMode === 'none') {
+                    if (colorMode.startsWith('none')) {
                         asciiOutput.innerHTML = result.text;
                         asciiOutput.style.color = textColorInput.value;
                     } else {
@@ -744,6 +797,9 @@
                 let asciiText = '';
                 let asciiHtml = '';
                 
+                // Determine the base color mode (without -inverted)
+                const baseColorMode = colorMode.replace('-inverted', '');
+                
                 for (let y = 0; y < height; y++) {
                     for (let x = 0; x < width; x++) {
                         const pixelData = ctx.getImageData(x, y, 1, 1).data;
@@ -783,16 +839,16 @@
                         asciiText += char;
                         
                         // Colour handling for HTML output
-                        if (colorMode === 'none') {
+                        if (baseColorMode === 'none') {
                             asciiHtml += char;
-                        } else if (colorMode === 'original') {
+                        } else if (baseColorMode === 'original') {
                             asciiHtml += `<span style="color: rgb(${r}, ${g}, ${b});">${char}</span>`;
-                        } else if (colorMode === 'custom') {
+                        } else if (baseColorMode === 'custom') {
                             const color = customColorInput.value;
                             // Apply opacity based on brightness
                             const opacity = brightness / 255;
                             asciiHtml += `<span style="color: ${color}; opacity: ${opacity};">${char}</span>`;
-                        } else if (colorMode === 'gradient') {
+                        } else if (baseColorMode === 'gradient') {
                             const startColor = hexToRgb(document.getElementById('gradient-start').value);
                             const endColor = hexToRgb(document.getElementById('gradient-end').value);
                             const ratio = brightness / 255;
@@ -802,11 +858,24 @@
                             const b = Math.floor(startColor.b + ratio * (endColor.b - startColor.b));
                             
                             asciiHtml += `<span style="color: rgb(${r}, ${g}, ${b});">${char}</span>`;
-                        } else if (colorMode === 'riso') {
+                        } else if (baseColorMode === 'riso') {
                             const risoColor = document.getElementById('riso-color').value;
                             // Apply RISO color with brightness-based opacity for halftone-like effect
                             const opacity = brightness / 255;
                             asciiHtml += `<span style="color: ${risoColor}; opacity: ${opacity};">${char}</span>`;
+                        } else if (baseColorMode === 'mixed-riso') {
+                            const risoColor1 = document.getElementById('riso-color1').value;
+                            const risoColor2 = document.getElementById('riso-color2').value;
+                            const threshold = parseInt(document.getElementById('riso-threshold').value);
+                            
+                            // Use primary color for darker tones and secondary for lighter
+                            const color = brightness < threshold ? risoColor1 : risoColor2;
+                            // Apply brightness-based opacity for halftone-like effect
+                            const opacity = brightness < threshold ? 
+                                (1 - brightness / threshold) * 0.8 + 0.2 : // Map 0-threshold to 1.0-0.2
+                                ((brightness - threshold) / (255 - threshold)) * 0.8 + 0.2; // Map threshold-255 to 1.0-0.2
+                            
+                            asciiHtml += `<span style="color: ${color}; opacity: ${opacity};">${char}</span>`;
                         }
                     }
                     asciiText += '\n';
@@ -867,7 +936,7 @@
                         <style>${style}</style>
                     </head>
                     <body>
-                        ${colorModeSelect.value === 'none' ? 
+                        ${colorModeSelect.value.startsWith('none') ? 
                           `<div style="color: ${textColorInput.value};">${processedAscii.text.replace(/\n/g, '<br>')}</div>` : 
                           processedAscii.html}
                     </body>
@@ -883,6 +952,92 @@
                 a.click();
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
+            });
+            
+            // Download as PNG
+            downloadPngBtn.addEventListener('click', function() {
+                if (!processedAscii) return;
+                
+                // Create a temporary container with the same styling as the output
+                const container = document.createElement('div');
+                container.style.backgroundColor = bgColorInput.value;
+                container.style.fontFamily = 'monospace';
+                container.style.whiteSpace = 'pre';
+                container.style.lineHeight = lineHeightSlider.value;
+                container.style.fontSize = fontSizeSlider.value + 'px';
+                container.style.letterSpacing = letterSpacingSlider.value + 'em';
+                container.style.padding = '15px';
+                container.style.position = 'absolute';
+                container.style.left = '-9999px';
+                container.style.top = '-9999px';
+                
+                // Insert the ASCII content
+                if (colorModeSelect.value.startsWith('none')) {
+                    container.style.color = textColorInput.value;
+                    container.textContent = processedAscii.text;
+                } else {
+                    container.innerHTML = processedAscii.html;
+                }
+                
+                document.body.appendChild(container);
+                
+                // Get dimensions
+                const width = container.offsetWidth;
+                const height = container.offsetHeight;
+                
+                // Create canvas and draw the content
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                
+                // Draw background
+                ctx.fillStyle = bgColorInput.value;
+                ctx.fillRect(0, 0, width, height);
+                
+                // Use html2canvas approach with SVG + foreignObject
+                const data = `
+                    <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
+                        <foreignObject width="100%" height="100%">
+                            <div xmlns="http://www.w3.org/1999/xhtml">
+                                <style>
+                                    pre {
+                                        background-color: ${bgColorInput.value};
+                                        font-family: monospace;
+                                        white-space: pre;
+                                        line-height: ${lineHeightSlider.value};
+                                        font-size: ${fontSizeSlider.value}px;
+                                        letter-spacing: ${letterSpacingSlider.value}em;
+                                        padding: 15px;
+                                        color: ${colorModeSelect.value.startsWith('none') ? textColorInput.value : 'inherited'};
+                                    }
+                                </style>
+                                <pre>${colorModeSelect.value.startsWith('none') ? 
+                                    processedAscii.text.replace(/</g, '&lt;').replace(/>/g, '&gt;') : 
+                                    processedAscii.html}</pre>
+                            </div>
+                        </foreignObject>
+                    </svg>
+                `;
+                
+                const img = new Image();
+                img.onload = function() {
+                    ctx.drawImage(img, 0, 0);
+                    
+                    // Convert to PNG and download
+                    const pngUrl = canvas.toDataURL('image/png');
+                    const a = document.createElement('a');
+                    a.href = pngUrl;
+                    a.download = 'ascii_art.png';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    
+                    // Clean up
+                    document.body.removeChild(container);
+                };
+                
+                img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(data);
             });
         });
     </script>
