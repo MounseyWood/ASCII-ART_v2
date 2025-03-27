@@ -14,48 +14,6 @@
             color: #333;
         }
         
-        input[type="range"] {
-            -webkit-appearance: none;
-            width: 100%;
-            height: 4px;
-            border-radius: 5px;
-            background: #ddd;
-            outline: none;
-            background-color: #e0e0e0;
-        }
-        
-        input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 15px;
-            height: 15px;
-            border-radius: 50%;
-            background: #fff;
-            border: 1px solid #ccc;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-            cursor: pointer;
-        }
-        
-        input[type="range"]::-moz-range-thumb {
-            width: 15px;
-            height: 15px;
-            border-radius: 50%;
-            background: #fff;
-            border: 1px solid #ccc;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-            cursor: pointer;
-        }
-        
-        input[type="range"]::-ms-thumb {
-            width: 15px;
-            height: 15px;
-            border-radius: 50%;
-            background: #fff;
-            border: 1px solid #ccc;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-            cursor: pointer;
-        }
-        
         h1 {
             text-align: center;
             color: #2c3e50;
@@ -127,11 +85,42 @@
             color: #2c3e50;
         }
         
-        select, input[type="range"], input[type="number"], input[type="color"] {
+        select, input[type="number"], input[type="color"] {
             width: 100%;
             padding: 8px;
             border-radius: 4px;
             border: 1px solid #ddd;
+        }
+        
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 4px;
+            border-radius: 5px;
+            background-color: #e0e0e0;
+            outline: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #fff;
+            border: 1px solid #ccc;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+            cursor: pointer;
+        }
+        
+        input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #fff;
+            border: 1px solid #ccc;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+            cursor: pointer;
         }
         
         .slider-container {
@@ -143,7 +132,6 @@
         
         .slider-container input[type="range"] {
             flex: 1;
-            height: 4px;
         }
         
         .convert-btn {
@@ -316,6 +304,34 @@
             margin-top: 0;
             margin-bottom: 15px;
         }
+        
+        .reset-btn {
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            display: inline-block;
+            text-align: center;
+            margin-top: 15px;
+        }
+        
+        .reset-btn:hover {
+            background-color: #c0392b;
+        }
+        
+        #debug-info {
+            display: none;
+            margin-top: 10px;
+            color: #666;
+            font-size: 12px;
+            background-color: #f9f9f9;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
     </style>
 </head>
 <body>
@@ -328,11 +344,6 @@
                     <p>Click to upload an image or drag and drop</p>
                     <input type="file" id="image-input" accept="image/*" style="display: none;">
                     <img id="preview" style="display: none;">
-                </div>
-                
-                <!-- Debugging info (hidden by default) -->
-                <div id="debug-info" style="display: none; margin-top: 10px; color: #666; font-size: 12px; background-color: #f9f9f9; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
-                    <p>Debug information will appear here</p>
                 </div>
                 
                 <!-- Masking controls -->
@@ -375,7 +386,7 @@
                             </select>
                         </div>
                         
-                        <button id="clear-mask" class="download-btn" style="background-color: #e74c3c; margin-top: 10px;">Clear Mask</button>
+                        <button id="clear-mask" class="reset-btn">Clear Mask</button>
                         <button id="toggle-mask-preview" class="download-btn" style="margin-top: 10px;">Toggle Mask Preview</button>
                         
                         <div class="canvas-container" id="canvas-container">
@@ -528,7 +539,7 @@
                     </div>
                 </div>
                 
-                <!-- Display Settings (moved from tab) -->
+                <!-- Display Settings -->
                 <div class="display-settings">
                     <h3>Display Settings</h3>
                     <div class="control-group">
@@ -565,12 +576,11 @@
                         <input type="color" id="text-color" value="#000000">
                     </div>
                     
-                    <div class="control-group">
-                        <button id="reset-display-settings" class="download-btn" style="background-color: #e74c3c; margin-top: 15px;">Reset to Default Settings</button>
-                    </div>
+                    <button id="reset-display-settings" class="reset-btn">Reset to Default Settings</button>
                 </div>
                 
                 <button class="convert-btn" id="convert-btn">Convert to ASCII Art</button>
+                <div id="debug-info"></div>
             </div>
         </div>
         
@@ -589,30 +599,16 @@
             </div>
         </div>
     </div>
+    
+    <div style="text-align: center; margin-top: 10px;">
+        <a href="#" id="toggle-debug" style="color: #666; text-decoration: none; font-size: 12px;">Show/Hide Debug Info</a>
+    </div>
 
+    <!-- Load html2canvas library -->
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Prevent error messages from appearing in the UI
-            const originalConsoleError = console.error;
-            console.error = function() {
-                const debugInfo = document.getElementById('debug-info');
-                if (debugInfo) {
-                    const errorMsg = Array.from(arguments).join(' ');
-                    debugInfo.innerHTML += `<p style="color: red;">Error: ${errorMsg}</p>`;
-                }
-                originalConsoleError.apply(console, arguments);
-            };
-            
-            // Handle any uncaught errors
-            window.onerror = function(message, source, lineno, colno, error) {
-                const debugInfo = document.getElementById('debug-info');
-                if (debugInfo) {
-                    debugInfo.style.display = 'block';
-                    debugInfo.innerHTML += `<p style="color: red;">JavaScript Error: ${message} at line ${lineno}:${colno}</p>`;
-                }
-                // Return true to prevent the error from showing in console
-                return true;
-            };
             // DOM elements
             const fileUpload = document.getElementById('file-upload');
             const imageInput = document.getElementById('image-input');
@@ -652,6 +648,7 @@
             const risoMixRatioSlider = document.getElementById('riso-mix-ratio');
             const risoMixRatioValue = document.getElementById('riso-mix-ratio-value');
             const toggleDebugBtn = document.getElementById('toggle-debug');
+            const debugInfo = document.getElementById('debug-info');
             
             // Masking elements
             const enableMasking = document.getElementById('enable-masking');
@@ -677,6 +674,17 @@
             let lastX = 0;
             let lastY = 0;
             let brushSize = 20;
+            
+            // Debug logging
+            function logDebug(message, isError = false) {
+                const logEntry = document.createElement('p');
+                logEntry.textContent = message;
+                if (isError) {
+                    logEntry.style.color = 'red';
+                }
+                debugInfo.appendChild(logEntry);
+                console.log(message);
+            }
             
             // Initialize masking
             enableMasking.addEventListener('change', function() {
@@ -733,6 +741,7 @@
                 }
             });
             
+            // Setup mask canvas
             function setupMaskCanvas() {
                 if (!originalImage) return;
                 
@@ -773,6 +782,7 @@
                 maskCanvas.addEventListener('touchend', stopDrawing);
             }
             
+            // Drawing on mask
             function startDrawing(e) {
                 isDrawing = true;
                 const rect = maskCanvas.getBoundingClientRect();
@@ -835,15 +845,22 @@
             }
             
             // File upload handling
-            fileUpload.onclick = function() {
+            fileUpload.addEventListener('click', function() {
                 imageInput.click();
-            };
+                logDebug("File upload area clicked");
+            });
+            
+            imageInput.addEventListener('click', function(e) {
+                e.stopPropagation();
+                logDebug("Image input clicked");
+            });
             
             fileUpload.addEventListener('dragover', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
                 this.style.borderColor = '#3498db';
                 this.style.backgroundColor = '#f0f8ff';
+                logDebug("Drag over file upload area");
             });
             
             fileUpload.addEventListener('dragleave', function(e) {
@@ -851,11 +868,13 @@
                 e.stopPropagation();
                 this.style.borderColor = '#3498db';
                 this.style.backgroundColor = 'transparent';
+                logDebug("Drag leave file upload area");
             });
             
             fileUpload.addEventListener('drop', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
+                logDebug("File dropped");
                 this.style.borderColor = '#3498db';
                 this.style.backgroundColor = 'transparent';
                 
@@ -864,49 +883,45 @@
                 }
             });
             
-            imageInput.addEventListener('change', function() {
+            imageInput.addEventListener('change', function(e) {
+                logDebug("File input changed");
                 if (this.files && this.files.length > 0) {
                     handleFileUpload(this.files[0]);
                 }
             });
             
             function handleFileUpload(file) {
-                // Show debug info
-                const debugInfo = document.getElementById('debug-info');
-                debugInfo.style.display = 'block';
-                debugInfo.innerHTML = `<p>Processing file: ${file.name} (${file.type})</p>`;
+                logDebug(`Processing file: ${file.name} (${file.type})`);
                 
                 if (!file.type.match('image.*')) {
-                    debugInfo.innerHTML += `<p style="color: red;">Error: Not an image file</p>`;
+                    logDebug("Error: Not an image file", true);
                     alert('Please select an image file.');
                     return;
                 }
                 
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    debugInfo.innerHTML += `<p>File loaded successfully</p>`;
+                    logDebug("File loaded successfully");
                     preview.src = e.target.result;
                     preview.style.display = 'block';
                     loadImage(e.target.result);
                 };
-                reader.onerror = function() {
-                    debugInfo.innerHTML += `<p style="color: red;">Error: Failed to read file</p>`;
+                reader.onerror = function(e) {
+                    logDebug(`Error reading file: ${e.target.error}`, true);
                 };
                 reader.readAsDataURL(file);
             }
             
             function loadImage(src) {
-                const debugInfo = document.getElementById('debug-info');
                 originalImage = new Image();
                 originalImage.onload = function() {
-                    debugInfo.innerHTML += `<p>Image loaded: ${this.width}x${this.height}</p>`;
-                    // Image is loaded and ready for processing
+                    logDebug(`Image loaded: ${this.width}x${this.height}`);
                     if (enableMasking.checked) {
                         setupMaskCanvas();
                     }
                 };
                 originalImage.onerror = function() {
-                    debugInfo.innerHTML += `<p style="color: red;">Error: Failed to load image</p>`;
+                    logDebug("Error: Failed to load image", true);
                 };
                 originalImage.src = src;
             }
@@ -1029,72 +1044,79 @@
             
             // Main conversion function
             convertBtn.addEventListener('click', function() {
-                const debugInfo = document.getElementById('debug-info');
-                
                 if (!originalImage) {
-                    debugInfo.style.display = 'block';
-                    debugInfo.innerHTML = `<p style="color: red;">Error: No image loaded</p>`;
+                    logDebug("Error: No image loaded", true);
                     alert('Please upload an image first.');
                     return;
                 }
                 
-                debugInfo.innerHTML += `<p>Starting conversion process...</p>`;
+                logDebug("Starting conversion process...");
                 loading.style.display = 'block';
                 asciiOutput.style.display = 'none';
                 
                 // Allow the UI to update before starting the conversion
                 setTimeout(() => {
-                    const mode = document.getElementById('mode').value;
-                    const charsetType = charsetSelect.value;
-                    const resolution = parseInt(resolutionSlider.value);
-                    const contrast = parseFloat(contrastSlider.value) / 100;
-                    const brightness = parseFloat(brightnessSlider.value) / 100;
-                    const aspectRatio = parseFloat(aspectRatioSlider.value);
-                    const colorMode = colorModeSelect.value;
-                    
-                    let chars;
-                    if (charsetType === 'standard') {
-                        chars = '@%#*+=-:. ';
-                    } else if (charsetType === 'simple') {
-                        chars = '#. ';
-                    } else if (charsetType === 'complex') {
-                        chars = '$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\\|()1{}[]?-_+~<>i!lI;:,"^`\'. ';
-                    } else if (charsetType === 'bold-complex') {
-                        chars = '<b>$@B%8&WM#*</b>oahkbdpqwmZO0QLCJUYXzcvunxrjft/\\|()1{}[]?-_+~<>i!lI;:,"^`\'. ';
-                    } else if (charsetType === 'arabic') {
-                        chars = 'ابتثجحخدذرزسشصضطظعغفقكلمنهويءآأؤإئىةـڢڤڥڦڧڨݐݑݒݓݔݕݖݗݘݙݚݛݜݝݞݟݠݡࡀࡁࡂࡃࡄࡅࡆࡇࡈࡉࡊࡋࡌࡍࡎࡏࡐࡑࡒࡓࡔࡕࡖࡗࡘ ';
-                    } else if (charsetType === 'korean') {
-                        chars = '가각갂갃간갅갆갇갈갉갊갋갌갍갎갏감갑값갓갔강갖갗갘같갚갛개객갞갟갠갡갢갣갤갥갦갧갨갩갪갫갬갭갮갯갰갱갲갳갴갵갶갷갸갹갺갻갼갽갾갿걀걁걂걃걄걅걆걇걈걉걊걋걌걍걎걏걐걑걒걓걔걕걖걗걘걙걚걛걜걝걞걟걠걡걢걣걤걥걦걧걨걩걪걫걬걭걮걯거걱걲걳건걵걶걷걸걹걺걻걼걽걾걿검겁겂것겄겅겆겇겈겉겊겋게겍겎겏겐겑겒겓겔겕겖겗겘겙겚겛겜겝겞겟겠겡겢겣겤겥겦겧겨격겪겫견겭겮겯결겱겲겳겴겵겶겷겸겹겺겻겼경겾겿곀곁곂곃계곅곆곇곈곉곊곋곌곍곎곏곐곑곒곓곔곕곖곗곘곙곚곛곜곝곞곟고곡곢곣곤곥곦곧골곩곪곫곬곭곮곯곰곱곲곳곴공곶곷곸곹곺곻과곽곾곿관괁괂괃괄괅괆괇괈괉괊괋괌괍괎괏괐광괒괓괔괕괖괗괘괙괚괛괜괝괞괟괠괡괢괣괤괥괦괧괨괩괪괫괬괭괮괯괰괱괲괳괴괵괶괷괸괹괺괻괼괽괾괿굀굁굂굃굄굅굆굇굈굉굊굋굌굍굎굏교굑굒굓굔굕굖굗굘굙굚굛굜굝굞굟굠굡굢굣굤굥굦굧굨굩굪굫구국굮굯군굱굲굳굴굵굶굷굸굹굺굻굼굽굾굿궀궁궂궃궄궅궆궇궈궉궊궋권궍궎궏궐궑궒궓궔궕궖궗궘궙궚궛궜궝궞궟궠궡궢궣궤궥궦궧궨궩궪궫궬궭궮궯궰궱궲궳궴궵궶궷궸궹궺궻궼궽궾궿귀귁귂귃귄귅귆귇귈귉귊귋귌귍귎귏귐귑귒귓귔귕귖귗귘귙귚귛규귝귞귟균귡귢귣귤귥귦귧귨귩귪귫귬귭귮귯귰귱귲귳귴귵귶귷그극귺귻근귽귾귿글긁긂긃긄긅긆긇금급긊긋긌긍긎긏긐긑긒긓긔긕긖긗긘긙긚긛긜긝긞긟긠긡긢긣긤긥긦긧긨긩긪긫긬긭긮긯기긱긲긳긴긵긶긷길긹긺긻긼긽긾긿김깁깂깃깄깅깆깇깈깉깊깋까깍깎깏깐깑깒깓깔깕깖깗깘깙깚깛깜깝깞깟깠깡깢깣깤깥깦깧깨깩깪깫깬깭깮깯깰깱깲깳깴깵깶깷깸깹깺깻깼깽깾깿꺀꺁꺂꺃꺄꺅꺆꺇꺈꺉꺊꺋꺌꺍꺎꺏꺐꺑꺒꺓꺔꺕꺖꺗꺘꺙꺚꺛꺜꺝꺞꺟꺠꺡꺢꺣꺤꺥꺦꺧꺨꺩꺪꺫꺬꺭꺮꺯꺰꺱꺲꺳꺴꺵꺶꺷꺸꺹꺺꺻꺼꺽꺾꺿껀껁껂껃껄껅껆껇껈껉껊껋껌껍껎껏껐껑껒껓껔껕껖껗께껙껚껛껜껝껞껟껠껡껢껣껤껥껦껧껨껩껪껫껬껭껮껯껰껱껲껳껴껵껶껷껸껹껺껻껼껽껾껿꼀꼁꼂꼃꼄꼅꼆꼇꼈꼉꼊꼋꼌꼍꼎꼏꼐꼑꼒꼓꼔꼕꼖꼗꼘꼙꼚꼛꼜꼝꼞꼟꼠꼡꼢꼣꼤꼥꼦꼧꼨꼩꼪꼫꼬꼭꼮꼯꼰꼱꼲꼳꼴꼵꼶꼷꼸꼹꼺꼻꼼꼽꼾꼿꽀꽁꽂꽃꽄꽅꽆꽇꽈꽉꽊꽋꽌꽍꽎꽏꽐꽑꽒꽓꽔꽕꽖꽗꽘꽙꽚꽛꽜꽝꽞꽟꽠꽡꽢꽣꽤꽥꽦꽧꽨꽩꽪꽫꽬꽭꽮꽯꽰꽱꽲꽳꽴꽵꽶꽷꽸꽹꽺꽻꽼꽽꽾꽿꾀꾁꾂꾃꾄꾅꾆꾇꾈꾉꾊꾋꾌꾍꾎꾏꾐꾑꾒꾓꾔꾕꾖꾗꾘꾙꾚꾛꾜꾝꾞꾟꾠꾡꾢꾣꾤꾥꾦꾧꾨꾩꾪꾫꾬꾭꾮꾯꾰꾱꾲꾳꾴꾵꾶꾷꾸꾹꾺꾻꾼꾽꾾꾿꿀꿁꿂꿃꿄꿅꿆꿇꿈꿉꿊꿋꿌꿍꿎꿏꿐꿑꿒꿓꿔꿕꿖꿗꿘꿙꿚꿛꿜꿝꿞꿟꿠꿡꿢꿣꿤꿥꿦꿧꿨꿩꿪꿫꿬꿭꿮꿯꿰꿱꿲꿳꿴꿵꿶꿷꿸꿹꿺꿻꿼꿽꿾꿿 ';
-                    } else {
-                        chars = customCharset.value || '@%#*+=-:. ';
+                    try {
+                        const mode = document.getElementById('mode').value;
+                        const charsetType = charsetSelect.value;
+                        const resolution = parseInt(resolutionSlider.value);
+                        const contrast = parseFloat(contrastSlider.value) / 100;
+                        const brightness = parseFloat(brightnessSlider.value) / 100;
+                        const aspectRatio = parseFloat(aspectRatioSlider.value);
+                        const colorMode = colorModeSelect.value;
+                        
+                        let chars;
+                        if (charsetType === 'standard') {
+                            chars = '@%#*+=-:. ';
+                        } else if (charsetType === 'simple') {
+                            chars = '#. ';
+                        } else if (charsetType === 'complex') {
+                            chars = '$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\\|()1{}[]?-_+~<>i!lI;:,"^`\'. ';
+                        } else if (charsetType === 'bold-complex') {
+                            chars = '<b>$@B%8&WM#*</b>oahkbdpqwmZO0QLCJUYXzcvunxrjft/\\|()1{}[]?-_+~<>i!lI;:,"^`\'. ';
+                        } else if (charsetType === 'arabic') {
+                            chars = 'ابتثجحخدذرزسشصضطظعغفقكلمنهويءآأؤإئىةـڢڤڥڦڧڨݐݑݒݓݔݕݖݗݘݙݚݛݜݝݞݟݠݡࡀࡁࡂࡃࡄࡅࡆࡇࡈࡉࡊࡋࡌࡍࡎࡏࡐࡑࡒࡓࡔࡕࡖࡗࡘ ';
+                        } else if (charsetType === 'korean') {
+                            chars = '가각갂갃간갅갆갇갈갉갊갋갌갍갎갏감갑값갓갔강갖갗갘같갚갛개객갞갟갠갡갢갣갤갥갦갧갨갩갪갫갬갭갮갯갰갱갲갳갴갵갶갷갸갹갺갻갼갽갾갿걀걁걂걃걄걅걆걇걈걉걊걋걌걍걎걏걐걑걒걓걔걕걖걗걘걙걚걛걜걝걞걟걠걡걢걣걤걥걦걧걨걩걪걫걬걭걮걯거걱걲걳건걵걶걷걸걹걺걻걼걽걾걿검겁겂것겄겅겆겇겈겉겊겋게겍겎겏겐겑겒겓겔겕겖겗겘겙겚겛겜겝겞겟겠겡겢겣겤겥겦겧겨격겪겫견겭겮겯결겱겲겳겴겵겶겷겸겹겺겻겼경겾겿곀곁곂곃계곅곆곇곈곉곊곋곌곍곎곏곐곑곒곓곔곕곖곗곘곙곚곛곜곝곞곟고곡곢곣곤곥곦곧골곩곪곫곬곭곮곯곰곱곲곳곴공곶곷곸곹곺곻과곽곾곿관괁괂괃괄괅괆괇괈괉괊괋괌괍괎괏괐광괒괓괔괕괖괗괘괙괚괛괜괝괞괟괠괡괢괣괤괥괦괧괨괩괪괫괬괭괮괯괰괱괲괳괴괵괶괷괸괹괺괻괼괽괾괿굀굁굂굃굄굅굆굇굈굉굊굋굌굍굎굏교굑굒굓굔굕굖굗굘굙굚굛굜굝굞굟굠굡굢굣굤굥굦굧굨굩굪굫구국굮굯군굱굲굳굴굵굶굷굸굹굺굻굼굽굾굿궀궁궂궃궄궅궆궇궈궉궊궋권궍궎궏궐궑궒궓궔궕궖궗궘궙궚궛궜궝궞궟궠궡궢궣궤궥궦궧궨궩궪궫궬궭궮궯궰궱궲궳궴궵궶궷궸궹궺궻궼궽궾궿귀귁귂귃귄귅귆귇귈귉귊귋귌귍귎귏귐귑귒귓귔귕귖귗귘귙귚귛규귝귞귟균귡귢귣귤귥귦귧귨귩귪귫귬귭귮귯귰귱귲귳귴귵귶귷그극귺귻근귽귾귿글긁긂긃긄긅긆긇금급긊긋긌긍긎긏긐긑긒긓긔긕긖긗긘긙긚긛긜긝긞긟긠긡긢긣긤긥긦긧긨긩긪긫긬긭긮긯기긱긲긳긴긵긶긷길긹긺긻긼긽긾긿김깁깂깃깄깅깆깇깈깉깊깋까깍깎깏깐깑깒깓깔깕깖깗깘깙깚깛깜깝깞깟깠깡깢깣깤깥깦깧깨깩깪깫깬깭깮깯깰깱깲깳깴깵깶깷깸깹깺깻깼깽깾깿꺀꺁꺂꺃꺄꺅꺆꺇꺈꺉꺊꺋꺌꺍꺎꺏꺐꺑꺒꺓꺔꺕꺖꺗꺘꺙꺚꺛꺜꺝꺞꺟꺠꺡꺢꺣꺤꺥꺦꺧꺨꺩꺪꺫꺬꺭꺮꺯꺰꺱꺲꺳꺴꺵꺶꺷꺸꺹꺺꺻꺼꺽꺾꺿껀껁껂껃껄껅껆껇껈껉껊껋껌껍껎껏껐껑껒껓껔껕껖껗께껙껚껛껜껝껞껟껠껡껢껣껤껥껦껧껨껩껪껫껬껭껮껯껰껱껲껳껴껵껶껷껸껹껺껻껼껽껾껿꼀꼁꼂꼃꼄꼅꼆꼇꼈꼉꼊꼋꼌꼍꼎꼏꼐꼑꼒꼓꼔꼕꼖꼗꼘꼙꼚꼛꼜꼝꼞꼟꼠꼡꼢꼣꼤꼥꼦꼧꼨꼩꼪꼫꼬꼭꼮꼯꼰꼱꼲꼳꼴꼵꼶꼷꼸꼹꼺꼻꼼꼽꼾꼿꽀꽁꽂꽃꽄꽅꽆꽇꽈꽉꽊꽋꽌꽍꽎꽏꽐꽑꽒꽓꽔꽕꽖꽗꽘꽙꽚꽛꽜꽝꽞꽟꽠꽡꽢꽣꽤꽥꽦꽧꽨꽩꽪꽫꽬꽭꽮꽯꽰꽱꽲꽳꽴꽵꽶꽷꽸꽹꽺꽻꽼꽽꽾꽿꾀꾁꾂꾃꾄꾅꾆꾇꾈꾉꾊꾋꾌꾍꾎꾏꾐꾑꾒꾓꾔꾕꾖꾗꾘꾙꾚꾛꾜꾝꾞꾟꾠꾡꾢꾣꾤꾥꾦꾧꾨꾩꾪꾫꾬꾭꾮꾯꾰꾱꾲꾳꾴꾵꾶꾷꾸꾹꾺꾻꾼꾽꾾꾿꿀꿁꿂꿃꿄꿅꿆꿇꿈꿉꿊꿋꿌꿍꿎꿏꿐꿑꿒꿓꿔꿕꿖꿗꿘꿙꿚꿛꿜꿝꿞꿟꿠꿡꿢꿣꿤꿥꿦꿧꿨꿩꿪꿫꿬꿭꿮꿯꿰꿱꿲꿳꿴꿵꿶꿷꿸꿹꿺꿻꿼꿽꿾꿿 ';
+                        } else {
+                            chars = customCharset.value || '@%#*+=-:. ';
+                        }
+                        
+                        // Apply color mode inversion if needed
+                        let isInverted = colorMode === 'inverted';
+                        if (isInverted) {
+                            chars = chars.split('').reverse().join('');
+                        }
+                        
+                        // Process the image based on masking
+                        let result;
+                        if (enableMasking.checked && maskData) {
+                            logDebug("Processing with masking enabled");
+                            result = convertMaskedToAscii(originalImage, chars, resolution, contrast, brightness, mode, 
+                                                         foregroundColorModeSelect.value, backgroundColorModeSelect.value, aspectRatio);
+                        } else {
+                            logDebug("Processing without masking");
+                            result = convertToAscii(originalImage, chars, resolution, contrast, brightness, mode, colorMode, aspectRatio);
+                        }
+                        
+                        // Display the result
+                        if (colorMode === 'none' && !enableMasking.checked) {
+                            asciiOutput.innerHTML = result.text;
+                            asciiOutput.style.color = textColorInput.value;
+                        } else {
+                            asciiOutput.innerHTML = result.html;
+                        }
+                        
+                        processedAscii = result;
+                        logDebug("Conversion completed successfully");
+                        loading.style.display = 'none';
+                        asciiOutput.style.display = 'block';
+                    } catch (error) {
+                        logDebug(`Error during conversion: ${error.message}`, true);
+                        loading.style.display = 'none';
+                        asciiOutput.style.display = 'block';
+                        alert('An error occurred during conversion. Please try again.');
                     }
-                    
-                    // Apply color mode inversion if needed
-                    let isInverted = colorMode === 'inverted';
-                    if (isInverted) {
-                        chars = chars.split('').reverse().join('');
-                    }
-                    
-                    // Process the image based on masking
-                    let result;
-                    if (enableMasking.checked && maskData) {
-                        result = convertMaskedToAscii(originalImage, chars, resolution, contrast, brightness, mode, 
-                                                     foregroundColorModeSelect.value, backgroundColorModeSelect.value, aspectRatio);
-                    } else {
-                        result = convertToAscii(originalImage, chars, resolution, contrast, brightness, mode, colorMode, aspectRatio);
-                    }
-                    
-                    // Display the result
-                    if (colorMode === 'none' && !enableMasking.checked) {
-                        asciiOutput.innerHTML = result.text;
-                        asciiOutput.style.color = textColorInput.value;
-                    } else {
-                        asciiOutput.innerHTML = result.html;
-                    }
-                    
-                    processedAscii = result;
-                    loading.style.display = 'none';
-                    asciiOutput.style.display = 'block';
                 }, 100);
             });
             
@@ -1253,9 +1275,9 @@
                 
                 if (origAspectRatio > 1) {
                     width = maxWidth;
-                    height = Math.floor(width / origAspectRatio / aspectRatio); // User-adjustable aspect ratio compensation
+                    height = Math.floor(width / origAspectRatio / aspectRatio);
                 } else {
-                    height = Math.floor(maxWidth / aspectRatio); // User-adjustable aspect ratio compensation
+                    height = Math.floor(maxWidth / aspectRatio);
                     width = Math.floor(height * origAspectRatio);
                 }
                 
@@ -1298,10 +1320,8 @@
                         // Calculate pixel brightness (weighted RGB)
                         let brightness;
                         if (mode === 'detailed' || mode === 'realistic') {
-                            // More weight to green for better detail perception
                             brightness = 0.299 * r + 0.587 * g + 0.114 * b;
                         } else {
-                            // Standard brightness calculation
                             brightness = (r + g + b) / 3;
                         }
                         
@@ -1309,17 +1329,14 @@
                         let charIndex;
                         const len = charset.length - 1;
                         if (mode === 'stylized') {
-                            // Non-linear mapping for stylized effect
                             charIndex = Math.floor((Math.pow(brightness / 255, 1.5)) * len);
                         } else if (mode === 'realistic') {
-                            // Enhance mid-tones for more realistic representation
                             const adjusted = brightness / 255;
                             const enhanced = adjusted < 0.5 
                                 ? 0.5 * Math.pow(adjusted * 2, 0.8)
                                 : 0.5 + 0.5 * Math.pow((adjusted - 0.5) * 2, 1.2);
                             charIndex = Math.floor(enhanced * len);
                         } else {
-                            // Linear mapping for classic mode
                             charIndex = Math.floor((brightness / 255) * len);
                         }
                         
@@ -1333,7 +1350,6 @@
                             asciiHtml += `<span style="color: rgb(${r}, ${g}, ${b});">${char}</span>`;
                         } else if (colorMode === 'custom') {
                             const color = customColorInput.value;
-                            // Apply opacity based on brightness
                             const opacity = brightness / 255;
                             asciiHtml += `<span style="color: ${color}; opacity: ${opacity};">${char}</span>`;
                         } else if (colorMode === 'gradient') {
@@ -1348,7 +1364,6 @@
                             asciiHtml += `<span style="color: rgb(${r}, ${g}, ${b});">${char}</span>`;
                         } else if (colorMode === 'riso') {
                             const risoColor = document.getElementById('riso-color').value;
-                            // Apply RISO color with brightness-based opacity for halftone-like effect
                             const opacity = brightness / 255;
                             asciiHtml += `<span style="color: ${risoColor}; opacity: ${opacity};">${char}</span>`;
                         } else if (colorMode === 'mixed-riso') {
@@ -1357,7 +1372,6 @@
                             const mixRatio = parseInt(document.getElementById('riso-mix-ratio').value) / 100;
                             const opacity = brightness / 255;
                             
-                            // Determine which color to use based on brightness and mix ratio
                             const color = brightness / 255 > mixRatio ? primaryColor : secondaryColor;
                             asciiHtml += `<span style="color: ${color}; opacity: ${opacity};">${char}</span>`;
                         } else if (colorMode === 'inverted') {
@@ -1392,20 +1406,6 @@
                 }
                 
                 try {
-                    // Check if html2canvas is loaded
-                    if (typeof html2canvas === 'undefined') {
-                        // Try to load it on demand if not already loaded
-                        const script = document.createElement('script');
-                        script.src = 'https://html2canvas.hertzen.com/dist/html2canvas.min.js';
-                        script.onload = function() {
-                            // Try again after loading
-                            downloadPngBtn.click();
-                        };
-                        document.head.appendChild(script);
-                        alert('PNG export library is loading. Please try again in a moment.');
-                        return;
-                    }
-                    
                     // Create a temporary container with proper styling
                     const container = document.createElement('div');
                     container.style.position = 'absolute';
@@ -1423,6 +1423,8 @@
                     
                     document.body.appendChild(container);
                     
+                    logDebug("Creating PNG from ASCII art...");
+                    
                     // Use html2canvas to take screenshot
                     html2canvas(container).then(canvas => {
                         try {
@@ -1430,15 +1432,16 @@
                             link.download = 'ascii_art.png';
                             link.href = canvas.toDataURL('image/png');
                             link.click();
+                            logDebug("PNG created and download initiated");
                         } catch (err) {
-                            console.error('Error creating download link:', err);
+                            logDebug(`Error creating download link: ${err.message}`, true);
                             alert('There was an error creating the download. Please try again.');
                         } finally {
                             // Clean up
                             document.body.removeChild(container);
                         }
                     }).catch(error => {
-                        console.error('Error generating PNG:', error);
+                        logDebug(`Error generating PNG: ${error.message}`, true);
                         alert('There was an error generating the PNG. Please try again.');
                         // Clean up in case of error
                         if (document.body.contains(container)) {
@@ -1446,129 +1449,114 @@
                         }
                     });
                 } catch (error) {
-                    console.error('Unexpected error in PNG download:', error);
+                    logDebug(`Unexpected error in PNG download: ${error.message}`, true);
                     alert('There was an unexpected error. Please try again.');
                 }
             });
             
             // Download as TXT
             downloadTxtBtn.addEventListener('click', function() {
-                if (!processedAscii) return;
-                
-                const blob = new Blob([processedAscii.text], { type: 'text/plain' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'ascii_art.txt';
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-            });
-            
-            // Download as HTML
-            downloadHtmlBtn.addEventListener('click', function() {
-                if (!processedAscii) return;
-                
-                const style = `
-                    body {
-                        background-color: ${bgColorInput.value};
-                        font-family: monospace;
-                        line-height: ${lineHeightSlider.value};
-                        font-size: ${fontSizeSlider.value}px;
-                        letter-spacing: ${letterSpacingSlider.value}em;
-                        white-space: pre;
-                    }
-                `;
-                
-                const html = `
-                    <!DOCTYPE html>
-                    <html>
-                    <head>
-                        <meta charset="UTF-8">
-                        <title>ASCII Art</title>
-                        <style>${style}</style>
-                        <script>
-                            // Simple script to enable PNG export directly from the HTML file
-                            function downloadAsPNG() {
-                                const element = document.getElementById('ascii-art');
-                                html2canvas(element).then(canvas => {
-                                    const link = document.createElement('a');
-                                    link.download = 'ascii_art.png';
-                                    link.href = canvas.toDataURL('image/png');
-                                    link.click();
-                                });
-                            }
-                        </script>
-                        <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
-                    </head>
-                    <body>
-                        <div id="ascii-art">
-                            ${colorModeSelect.value === 'none' ? 
-                              `<div style="color: ${textColorInput.value};">${processedAscii.text.replace(/\n/g, '<br>')}</div>` : 
-                              processedAscii.html}
-                        </div>
-                        <div style="margin-top: 20px;">
-                            <button onclick="downloadAsPNG()" style="padding: 10px; background-color: #2ecc71; color: white; border: none; border-radius: 4px; cursor: pointer;">
-                                Download as PNG
-                            </button>
-                        </div>
-                    </body>
-                    </html>
-                `;
-                
-                const blob = new Blob([html], { type: 'text/html' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'ascii_art.html';
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-            });
-            
-            // Add html2canvas library for PNG export
-            function loadHTML2Canvas() {
-                // Check if it's already loaded
-                if (typeof html2canvas !== 'undefined') {
+                if (!processedAscii) {
+                    alert('Please convert an image to ASCII art first.');
                     return;
                 }
                 
                 try {
-                    const script = document.createElement('script');
-                    script.src = 'https://html2canvas.hertzen.com/dist/html2canvas.min.js';
-                    script.async = true;
-                    script.onload = function() {
-                        const debugInfo = document.getElementById('debug-info');
-                        if (debugInfo) {
-                            debugInfo.innerHTML += '<p>html2canvas loaded successfully</p>';
-                        }
-                    };
-                    script.onerror = function() {
-                        const debugInfo = document.getElementById('debug-info');
-                        if (debugInfo) {
-                            debugInfo.innerHTML += '<p style="color: red;">Failed to load html2canvas</p>';
-                        }
-                    };
-                    document.head.appendChild(script);
+                    const blob = new Blob([processedAscii.text], { type: 'text/plain' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'ascii_art.txt';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    logDebug("Text file download initiated");
                 } catch (error) {
-                    const debugInfo = document.getElementById('debug-info');
-                    if (debugInfo) {
-                        debugInfo.innerHTML += `<p style="color: red;">Error loading html2canvas: ${error.message}</p>`;
-                    }
+                    logDebug(`Error downloading text file: ${error.message}`, true);
+                    alert('There was an error downloading the file. Please try again.');
                 }
-            }
+            });
             
-            // Load html2canvas when the page loads
-            loadHTML2Canvas();
+            // Download as HTML
+            downloadHtmlBtn.addEventListener('click', function() {
+                if (!processedAscii) {
+                    alert('Please convert an image to ASCII art first.');
+                    return;
+                }
+                
+                try {
+                    const style = `
+                        body {
+                            background-color: ${bgColorInput.value};
+                            font-family: monospace;
+                            line-height: ${lineHeightSlider.value};
+                            font-size: ${fontSizeSlider.value}px;
+                            letter-spacing: ${letterSpacingSlider.value}em;
+                            white-space: pre;
+                        }
+                    `;
+                    
+                    const html = `
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                            <meta charset="UTF-8">
+                            <title>ASCII Art</title>
+                            <style>${style}</style>
+                            <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+                            <script>
+                                function downloadAsPNG() {
+                                    const element = document.getElementById('ascii-art');
+                                    html2canvas(element).then(canvas => {
+                                        const link = document.createElement('a');
+                                        link.download = 'ascii_art.png';
+                                        link.href = canvas.toDataURL('image/png');
+                                        link.click();
+                                    });
+                                }
+                            </script>
+                        </head>
+                        <body>
+                            <div id="ascii-art">
+                                ${colorModeSelect.value === 'none' ? 
+                                  `<div style="color: ${textColorInput.value};">${processedAscii.text.replace(/\n/g, '<br>')}</div>` : 
+                                  processedAscii.html}
+                            </div>
+                            <div style="margin-top: 20px;">
+                                <button onclick="downloadAsPNG()" style="padding: 10px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                                    Download as PNG
+                                </button>
+                            </div>
+                        </body>
+                        </html>
+                    `;
+                    
+                    const blob = new Blob([html], { type: 'text/html' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'ascii_art.html';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    logDebug("HTML file download initiated");
+                } catch (error) {
+                    logDebug(`Error downloading HTML file: ${error.message}`, true);
+                    alert('There was an error downloading the file. Please try again.');
+                }
+            });
             
             // Toggle debug info
             toggleDebugBtn.addEventListener('click', function(e) {
                 e.preventDefault();
-                const debugInfo = document.getElementById('debug-info');
                 debugInfo.style.display = debugInfo.style.display === 'none' ? 'block' : 'none';
             });
+            
+            // Log initial messages
+            logDebug("ASCII Art Converter initialized");
+            logDebug("Click 'Upload Image' to begin");
         });
     </script>
 </body>
