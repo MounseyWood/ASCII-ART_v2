@@ -14,6 +14,25 @@
             color: #333;
         }
         
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 4px;
+            border-radius: 5px;
+            background: #ddd;
+            outline: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            background: #3498db;
+            cursor: pointer;
+        }
+        
         h1 {
             text-align: center;
             color: #2c3e50;
@@ -102,7 +121,7 @@
         }
         
         .convert-btn {
-            background-color: #3498db;
+            background-color: #2196F3;
             color: white;
             border: none;
             padding: 12px 20px;
@@ -115,7 +134,7 @@
         }
         
         .convert-btn:hover {
-            background-color: #2980b9;
+            background-color: #0b7dda;
         }
         
         .output-section {
@@ -144,20 +163,20 @@
         }
         
         .download-btn {
-            background-color: #2ecc71;
+            background-color: #4CAF50;
             color: white;
             border: none;
             padding: 8px 15px;
             border-radius: 4px;
             cursor: pointer;
             transition: background-color 0.3s;
-            display: flex;
-            align-items: center;
-            gap: 5px;
+            display: inline-block;
+            text-align: center;
+            margin-right: 10px;
         }
         
         .download-btn:hover {
-            background-color: #27ae60;
+            background-color: #45a049;
         }
 
         .color-preset {
@@ -281,6 +300,11 @@
                     <p>Click to upload an image or drag and drop</p>
                     <input type="file" id="image-input" accept="image/*" style="display: none;">
                     <img id="preview" style="display: none;">
+                </div>
+                
+                <!-- Debugging info -->
+                <div id="debug-info" style="display: none; margin-top: 10px; color: #666; font-size: 12px;">
+                    <p>Debug information will appear here</p>
                 </div>
                 
                 <!-- Masking controls -->
@@ -519,6 +543,7 @@
                 </div>
                 
                 <button class="convert-btn" id="convert-btn">Convert to ASCII Art</button>
+                <button id="toggle-debug" style="margin-top: 10px; background: none; border: none; color: #666; text-decoration: underline; cursor: pointer; font-size: 12px;">Show/Hide Debug Info</button>
             </div>
         </div>
         
@@ -540,6 +565,15 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // Handle any uncaught errors
+            window.onerror = function(message, source, lineno, colno, error) {
+                const debugInfo = document.getElementById('debug-info');
+                if (debugInfo) {
+                    debugInfo.style.display = 'block';
+                    debugInfo.innerHTML += `<p style="color: red;">JavaScript Error: ${message} at line ${lineno}:${colno}</p>`;
+                }
+                return false;
+            };
             // DOM elements
             const fileUpload = document.getElementById('file-upload');
             const imageInput = document.getElementById('image-input');
@@ -578,6 +612,7 @@
             const loading = document.getElementById('loading');
             const risoMixRatioSlider = document.getElementById('riso-mix-ratio');
             const risoMixRatioValue = document.getElementById('riso-mix-ratio-value');
+            const toggleDebugBtn = document.getElementById('toggle-debug');
             
             // Masking elements
             const enableMasking = document.getElementById('enable-masking');
@@ -761,24 +796,27 @@
             }
             
             // File upload handling
-            fileUpload.addEventListener('click', function() {
+            fileUpload.onclick = function() {
                 imageInput.click();
-            });
+            };
             
             fileUpload.addEventListener('dragover', function(e) {
                 e.preventDefault();
+                e.stopPropagation();
                 this.style.borderColor = '#3498db';
                 this.style.backgroundColor = '#f0f8ff';
             });
             
             fileUpload.addEventListener('dragleave', function(e) {
                 e.preventDefault();
+                e.stopPropagation();
                 this.style.borderColor = '#3498db';
                 this.style.backgroundColor = 'transparent';
             });
             
             fileUpload.addEventListener('drop', function(e) {
                 e.preventDefault();
+                e.stopPropagation();
                 this.style.borderColor = '#3498db';
                 this.style.backgroundColor = 'transparent';
                 
@@ -788,33 +826,48 @@
             });
             
             imageInput.addEventListener('change', function() {
-                if (this.files.length > 0) {
+                if (this.files && this.files.length > 0) {
                     handleFileUpload(this.files[0]);
                 }
             });
             
             function handleFileUpload(file) {
+                // Show debug info
+                const debugInfo = document.getElementById('debug-info');
+                debugInfo.style.display = 'block';
+                debugInfo.innerHTML = `<p>Processing file: ${file.name} (${file.type})</p>`;
+                
                 if (!file.type.match('image.*')) {
+                    debugInfo.innerHTML += `<p style="color: red;">Error: Not an image file</p>`;
                     alert('Please select an image file.');
                     return;
                 }
                 
                 const reader = new FileReader();
                 reader.onload = function(e) {
+                    debugInfo.innerHTML += `<p>File loaded successfully</p>`;
                     preview.src = e.target.result;
                     preview.style.display = 'block';
                     loadImage(e.target.result);
+                };
+                reader.onerror = function() {
+                    debugInfo.innerHTML += `<p style="color: red;">Error: Failed to read file</p>`;
                 };
                 reader.readAsDataURL(file);
             }
             
             function loadImage(src) {
+                const debugInfo = document.getElementById('debug-info');
                 originalImage = new Image();
                 originalImage.onload = function() {
+                    debugInfo.innerHTML += `<p>Image loaded: ${this.width}x${this.height}</p>`;
                     // Image is loaded and ready for processing
                     if (enableMasking.checked) {
                         setupMaskCanvas();
                     }
+                };
+                originalImage.onerror = function() {
+                    debugInfo.innerHTML += `<p style="color: red;">Error: Failed to load image</p>`;
                 };
                 originalImage.src = src;
             }
@@ -937,11 +990,16 @@
             
             // Main conversion function
             convertBtn.addEventListener('click', function() {
+                const debugInfo = document.getElementById('debug-info');
+                
                 if (!originalImage) {
+                    debugInfo.style.display = 'block';
+                    debugInfo.innerHTML = `<p style="color: red;">Error: No image loaded</p>`;
                     alert('Please upload an image first.');
                     return;
                 }
                 
+                debugInfo.innerHTML += `<p>Starting conversion process...</p>`;
                 loading.style.display = 'block';
                 asciiOutput.style.display = 'none';
                 
@@ -1291,6 +1349,12 @@
             downloadPngBtn.addEventListener('click', function() {
                 if (!processedAscii) return;
                 
+                // Check if html2canvas is loaded
+                if (typeof html2canvas === 'undefined') {
+                    alert('PNG export library is still loading. Please try again in a moment.');
+                    return;
+                }
+                
                 // Create a temporary container with proper styling
                 const container = document.createElement('div');
                 container.style.position = 'absolute';
@@ -1308,7 +1372,7 @@
                 
                 document.body.appendChild(container);
                 
-                // Use html2canvas to take screenshot (would need to include this library)
+                // Use html2canvas to take screenshot
                 html2canvas(container).then(canvas => {
                     const link = document.createElement('a');
                     link.download = 'ascii_art.png';
@@ -1317,6 +1381,9 @@
                     
                     // Clean up
                     document.body.removeChild(container);
+                }).catch(error => {
+                    console.error('Error generating PNG:', error);
+                    alert('There was an error generating the PNG. Please try again.');
                 });
             });
             
@@ -1399,13 +1466,30 @@
             
             // Add html2canvas library for PNG export
             function loadHTML2Canvas() {
+                // Check if it's already loaded
+                if (typeof html2canvas !== 'undefined') {
+                    return;
+                }
+                
                 const script = document.createElement('script');
                 script.src = 'https://html2canvas.hertzen.com/dist/html2canvas.min.js';
+                script.onload = function() {
+                    console.log('html2canvas loaded successfully');
+                };
+                script.onerror = function() {
+                    console.error('Failed to load html2canvas');
+                };
                 document.head.appendChild(script);
             }
             
             // Load html2canvas when the page loads
             loadHTML2Canvas();
+            
+            // Toggle debug info
+            toggleDebugBtn.addEventListener('click', function() {
+                const debugInfo = document.getElementById('debug-info');
+                debugInfo.style.display = debugInfo.style.display === 'none' ? 'block' : 'none';
+            });
         });
     </script>
 </body>
