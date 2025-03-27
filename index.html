@@ -228,6 +228,7 @@
         
         .masking-controls {
             display: flex;
+            flex-wrap: wrap;
             gap: 10px;
             margin-top: 10px;
         }
@@ -243,6 +244,40 @@
         
         .masking-btn:hover {
             background-color: #2980b9;
+        }
+        
+        .brush-size-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .brush-preview {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background-color: #FF48B0;
+            display: inline-block;
+        }
+        
+        .brush-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+            margin-top: 10px;
+        }
+        
+        .mask-preview-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        
+        .mask-preview-toggle input {
+            width: auto;
         }
 
         @media (min-width: 768px) {
@@ -531,12 +566,26 @@
                         <label for="mask-mode">Masking Mode</label>
                         <select id="mask-mode">
                             <option value="none">No Masking</option>
-                            <option value="rectangle">Rectangle Selection</option>
+                            <option value="brush">Brush Tool</option>
                         </select>
                         
                         <div id="mask-controls" style="display: none; margin-top: 10px;">
-                            <button id="create-mask" class="masking-btn">Select Area</button>
-                            <button id="clear-mask" class="masking-btn" style="background-color: #e74c3c;">Clear Selection</button>
+                            <div class="brush-controls">
+                                <button id="start-masking" class="masking-btn">Start Painting Mask</button>
+                                <button id="clear-mask" class="masking-btn" style="background-color: #e74c3c;">Clear Mask</button>
+                            </div>
+                            
+                            <div class="brush-size-container">
+                                <label for="brush-size">Brush Size</label>
+                                <input type="range" id="brush-size" min="5" max="50" value="20">
+                                <span id="brush-size-value">20px</span>
+                                <div class="brush-preview" id="brush-preview"></div>
+                            </div>
+                            
+                            <div class="mask-preview-toggle">
+                                <input type="checkbox" id="show-mask-preview">
+                                <label for="show-mask-preview">Preview Mask</label>
+                            </div>
                         </div>
                     </div>
                     
@@ -701,7 +750,7 @@
             // Masking elements
             const maskModeSelect = document.getElementById('mask-mode');
             const maskControls = document.getElementById('mask-controls');
-            const createMaskBtn = document.getElementById('create-mask');
+            const startMaskingBtn = document.getElementById('start-masking');
             const clearMaskBtn = document.getElementById('clear-mask');
             const maskingCanvas = document.getElementById('masking-canvas');
             const maskInstructions = document.getElementById('mask-instructions');
@@ -714,13 +763,19 @@
             const foregroundCustomColorInput = document.getElementById('foreground-custom-color');
             const foregroundRisoThresholdSlider = document.getElementById('foreground-riso-threshold');
             const foregroundRisoThresholdValue = document.getElementById('foreground-riso-threshold-value');
+            const brushSizeSlider = document.getElementById('brush-size');
+            const brushSizeValue = document.getElementById('brush-size-value');
+            const brushPreview = document.getElementById('brush-preview');
+            const showMaskPreviewCheckbox = document.getElementById('show-mask-preview');
             
             // Masking context
             const maskCtx = maskingCanvas.getContext('2d');
             let isDrawing = false;
-            let maskStartX = 0;
-            let maskStartY = 0;
-            let maskData = null; // Will store x, y, width, height of selected area
+            let lastX = 0;
+            let lastY = 0;
+            let brushSize = 20;
+            let isMaskingActive = false;
+            let maskData = null; // Will store the mask image data
             
             // Image data
             let originalImage = null;
@@ -796,6 +851,16 @@
                 maskingCanvas.height = rect.height;
                 maskingCanvas.style.top = preview.offsetTop + 'px';
                 maskingCanvas.style.left = preview.offsetLeft + 'px';
+                
+                // If we have an existing mask, redraw it at the new size
+                if (maskData) {
+                    const tempCanvas = document.createElement('canvas');
+                    tempCanvas.width = rect.width;
+                    tempCanvas.height = rect.height;
+                    const tempCtx = tempCanvas.getContext('2d');
+                    tempCtx.drawImage(maskData, 0, 0, rect.width, rect.height);
+                    maskCtx.drawImage(tempCanvas, 0, 0);
+                }
             }
             
             // Character set handling
@@ -949,6 +1014,14 @@
                 brightnessValue.textContent = `${this.value}%`;
             });
             
+            // Brush size handling
+            brushSizeSlider.addEventListener('input', function() {
+                brushSize = parseInt(this.value);
+                brushSizeValue.textContent = brushSize + 'px';
+                brushPreview.style.width = brushSize + 'px';
+                brushPreview.style.height = brushSize + 'px';
+            });
+            
             // Masking mode handling
             maskModeSelect.addEventListener('change', function() {
                 if (this.value === 'none') {
@@ -961,22 +1034,71 @@
                 }
             });
             
-            // Create mask button
-            createMaskBtn.addEventListener('click', function() {
+            // Show mask preview toggle
+            showMaskPreviewCheckbox.addEventListener('change', function() {
+                if (this.checked) {
+                    // Show only the mask with high contrast
+                    if (maskingCanvas.style.display !== 'none') {
+                        maskCtx.globalCompositeOperation = 'source-over';
+                        const imgData = maskCtx.getImageData(0, 0, maskingCanvas.width, maskingCanvas.height);
+                        
+                        // Create a high contrast version of the mask
+                        for (let i = 0; i < imgData.data.length; i += 4) {
+                            // If there's any alpha, make it bright pink
+                            if (imgData.data[i + 3] > 0) {
+                                imgData.data[i] = 255; // R
+                                imgData.data[i + 1] = 72; // G
+                                imgData.data[i + 2] = 176; // B
+                                imgData.data[i + 3] = 255; // Full alpha
+                            }
+                        }
+                        
+                        // Clear and redraw with high contrast
+                        maskCtx.clearRect(0, 0, maskingCanvas.width, maskingCanvas.height);
+                        maskCtx.putImageData(imgData, 0, 0);
+                    }
+                } else {
+                    // Restore normal semi-transparent view
+                    if (maskingCanvas.style.display !== 'none' && maskData) {
+                        maskCtx.globalCompositeOperation = 'source-over';
+                        maskCtx.clearRect(0, 0, maskingCanvas.width, maskingCanvas.height);
+                        maskCtx.drawImage(maskData, 0, 0, maskingCanvas.width, maskingCanvas.height);
+                    }
+                }
+            });
+            
+            // Start masking button
+            startMaskingBtn.addEventListener('click', function() {
                 if (!originalImage) {
                     alert('Please upload an image first.');
                     return;
                 }
                 
-                // Show masking canvas and instructions
-                maskingCanvas.style.display = 'block';
-                maskInstructions.style.display = 'block';
-                
-                // Clear any existing mask
-                clearMaskCanvas();
-                
-                // Setup masking events
-                setupMasking();
+                if (!isMaskingActive) {
+                    // Start masking mode
+                    isMaskingActive = true;
+                    this.textContent = 'Stop Painting';
+                    
+                    // Show masking canvas and instructions
+                    maskingCanvas.style.display = 'block';
+                    maskInstructions.textContent = 'Paint over the areas you want to highlight';
+                    maskInstructions.style.display = 'block';
+                    
+                    // Setup masking events
+                    setupMasking();
+                } else {
+                    // Stop masking mode
+                    isMaskingActive = false;
+                    this.textContent = 'Start Painting Mask';
+                    maskInstructions.style.display = 'none';
+                    
+                    // Remove masking events
+                    cleanupMasking();
+                    
+                    // Store the current canvas as mask data
+                    maskData = new Image();
+                    maskData.src = maskingCanvas.toDataURL();
+                }
             });
             
             // Clear mask button
@@ -989,6 +1111,14 @@
                 clearMaskCanvas();
                 maskingCanvas.style.display = 'none';
                 maskInstructions.style.display = 'none';
+                
+                if (isMaskingActive) {
+                    isMaskingActive = false;
+                    startMaskingBtn.textContent = 'Start Painting Mask';
+                    cleanupMasking();
+                }
+                
+                showMaskPreviewCheckbox.checked = false;
             }
             
             function clearMaskCanvas() {
@@ -999,10 +1129,10 @@
             
             // Setup masking functionality
             function setupMasking() {
-                maskingCanvas.addEventListener('mousedown', startMasking);
-                maskingCanvas.addEventListener('mousemove', updateMasking);
-                maskingCanvas.addEventListener('mouseup', endMasking);
-                maskingCanvas.addEventListener('mouseleave', endMasking);
+                maskingCanvas.addEventListener('mousedown', startDrawing);
+                maskingCanvas.addEventListener('mousemove', draw);
+                maskingCanvas.addEventListener('mouseup', stopDrawing);
+                maskingCanvas.addEventListener('mouseleave', stopDrawing);
                 
                 // Touch support
                 maskingCanvas.addEventListener('touchstart', handleTouchStart);
@@ -1010,66 +1140,63 @@
                 maskingCanvas.addEventListener('touchend', handleTouchEnd);
             }
             
-            function startMasking(e) {
+            // Clean up event listeners
+            function cleanupMasking() {
+                maskingCanvas.removeEventListener('mousedown', startDrawing);
+                maskingCanvas.removeEventListener('mousemove', draw);
+                maskingCanvas.removeEventListener('mouseup', stopDrawing);
+                maskingCanvas.removeEventListener('mouseleave', stopDrawing);
+                
+                maskingCanvas.removeEventListener('touchstart', handleTouchStart);
+                maskingCanvas.removeEventListener('touchmove', handleTouchMove);
+                maskingCanvas.removeEventListener('touchend', handleTouchEnd);
+            }
+            
+            // Brush painting functions
+            function startDrawing(e) {
                 isDrawing = true;
                 const rect = maskingCanvas.getBoundingClientRect();
-                maskStartX = e.clientX - rect.left;
-                maskStartY = e.clientY - rect.top;
+                lastX = e.clientX - rect.left;
+                lastY = e.clientY - rect.top;
                 
-                // Clear previous mask
-                clearMaskCanvas();
+                // Draw a single dot if the user just clicks
+                maskCtx.globalCompositeOperation = 'source-over';
+                maskCtx.beginPath();
+                maskCtx.fillStyle = 'rgba(255, 72, 176, 0.5)';
+                maskCtx.arc(lastX, lastY, brushSize/2, 0, Math.PI * 2);
+                maskCtx.fill();
             }
             
-            function updateMasking(e) {
+            function draw(e) {
                 if (!isDrawing) return;
                 
                 const rect = maskingCanvas.getBoundingClientRect();
                 const x = e.clientX - rect.left;
                 const y = e.clientY - rect.top;
                 
-                // Clear and redraw
-                clearMaskCanvas();
+                maskCtx.globalCompositeOperation = 'source-over';
+                maskCtx.beginPath();
+                maskCtx.strokeStyle = 'rgba(255, 72, 176, 0.5)';
+                maskCtx.lineWidth = brushSize;
+                maskCtx.lineCap = 'round';
+                maskCtx.lineJoin = 'round';
                 
-                // Draw selection rectangle
-                maskCtx.strokeStyle = '#FF48B0';
-                maskCtx.lineWidth = 2;
-                maskCtx.setLineDash([5, 5]);
+                maskCtx.moveTo(lastX, lastY);
+                maskCtx.lineTo(x, y);
+                maskCtx.stroke();
                 
-                const width = x - maskStartX;
-                const height = y - maskStartY;
+                // Also draw circle at the current point for smoother lines
+                maskCtx.beginPath();
+                maskCtx.fillStyle = 'rgba(255, 72, 176, 0.5)';
+                maskCtx.arc(x, y, brushSize/2, 0, Math.PI * 2);
+                maskCtx.fill();
                 
-                maskCtx.strokeRect(maskStartX, maskStartY, width, height);
-                
-                // Fill with semi-transparent color
-                maskCtx.fillStyle = 'rgba(255, 72, 176, 0.2)';
-                maskCtx.fillRect(maskStartX, maskStartY, width, height);
+                lastX = x;
+                lastY = y;
             }
             
-            function endMasking(e) {
-                if (!isDrawing) return;
-                
-                const rect = maskingCanvas.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
-                
-                // Calculate mask dimensions
-                let maskX = Math.min(maskStartX, x);
-                let maskY = Math.min(maskStartY, y);
-                let maskWidth = Math.abs(x - maskStartX);
-                let maskHeight = Math.abs(y - maskStartY);
-                
-                // Store mask data
-                maskData = {
-                    x: maskX / maskingCanvas.width,  // Store as ratio of canvas size
-                    y: maskY / maskingCanvas.height,
-                    width: maskWidth / maskingCanvas.width,
-                    height: maskHeight / maskingCanvas.height
-                };
-                
+            function stopDrawing() {
                 isDrawing = false;
-                
-                // Hide instructions
-                maskInstructions.style.display = 'none';
             }
             
             // Touch event handlers
@@ -1081,7 +1208,7 @@
                         clientX: touch.clientX,
                         clientY: touch.clientY
                     });
-                    startMasking(mouseEvent);
+                    startDrawing(mouseEvent);
                 }
             }
             
@@ -1093,14 +1220,13 @@
                         clientX: touch.clientX,
                         clientY: touch.clientY
                     });
-                    updateMasking(mouseEvent);
+                    draw(mouseEvent);
                 }
             }
             
             function handleTouchEnd(e) {
                 e.preventDefault();
-                const mouseEvent = new MouseEvent('mouseup', {});
-                endMasking(mouseEvent);
+                stopDrawing();
             }
             
             // Main conversion function
@@ -1410,11 +1536,19 @@
                 // Create ASCII output
                 let asciiHtml = '';
                 
-                // Calculate mask coordinates based on canvas dimensions
-                const maskX = Math.floor(mask.x * width);
-                const maskY = Math.floor(mask.y * height);
-                const maskWidth = Math.floor(mask.width * width);
-                const maskHeight = Math.floor(mask.height * height);
+                // Create a temporary canvas to scale the mask
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = width;
+                tempCanvas.height = height;
+                const tempCtx = tempCanvas.getContext('2d');
+                
+                // Scale the mask to match the ASCII resolution
+                if (mask) {
+                    tempCtx.drawImage(mask, 0, 0, width, height);
+                }
+                
+                // Get the scaled mask data
+                const maskImageData = tempCtx.getImageData(0, 0, width, height);
                 
                 // Determine base color modes (without -inverted)
                 const baseBgColorMode = bgColorMode.replace('-inverted', '');
@@ -1443,13 +1577,10 @@
                             brightness = (r + g + b) / 3;
                         }
                         
-                        // Check if pixel is inside the mask
-                        const isInMask = (
-                            x >= maskX && 
-                            x < maskX + maskWidth && 
-                            y >= maskY && 
-                            y < maskY + maskHeight
-                        );
+                        // Check if pixel is inside the mask by checking the alpha value
+                        // The index in the mask image data array
+                        const index = (y * width + x) * 4 + 3; // +3 for alpha channel
+                        const isInMask = mask && maskImageData.data[index] > 100; // Alpha threshold
                         
                         // Choose appropriate color mode and charset based on mask
                         const colorMode = isInMask ? baseFgColorMode : baseBgColorMode;
