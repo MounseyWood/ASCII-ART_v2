@@ -48,6 +48,9 @@
             border-radius: 8px;
             cursor: pointer;
             transition: all 0.3s;
+            position: relative;
+            height: 300px; /* Fixed height for input area */
+            overflow: hidden;
         }
         
         .file-upload:hover {
@@ -57,9 +60,17 @@
         
         .file-upload img {
             max-width: 100%;
-            max-height: 300px;
+            max-height: 100%;
             margin-top: 15px;
             border-radius: 4px;
+        }
+        
+        .masking-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            cursor: crosshair;
+            z-index: 10;
         }
         
         .controls {
@@ -155,6 +166,7 @@
             border-radius: 4px;
             line-height: 1.2;
             font-size: 8px;  /* Default font size */
+            height: 300px; /* Match input height */
         }
         
         .output-controls {
@@ -200,6 +212,39 @@
             border: 2px solid #2c3e50;
         }
 
+        /* Masking UI styles */
+        .mask-instructions {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background-color: rgba(0,0,0,0.7);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            z-index: 15;
+            display: none;
+        }
+        
+        .masking-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .masking-btn {
+            padding: 5px 10px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .masking-btn:hover {
+            background-color: #2980b9;
+        }
+
         @media (min-width: 768px) {
             #ascii-output {
                 font-size: 10px;
@@ -215,11 +260,27 @@
             .input-section, .output-section {
                 flex: 1;
                 max-width: 50%;
+                min-height: 600px; /* Ensure both sections have same height */
+                display: flex;
+                flex-direction: column;
+            }
+            
+            .input-container {
+                flex: 1;
+                display: flex;
+                flex-direction: column;
             }
             
             #ascii-output {
-                height: 500px;
+                flex: 1;
+                min-height: 300px;
                 font-size: 12px;
+            }
+            
+            .tab-content.active {
+                display: flex;
+                flex-direction: column;
+                flex: 1;
             }
         }
 
@@ -243,6 +304,17 @@
             animation: spin 1s linear infinite;
             margin: 0 auto 15px;
         }
+        
+        .masking-section {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid #ddd;
+        }
+        
+        .masking-section h3 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
 
         @keyframes spin {
             0% { transform: rotate(0deg); }
@@ -260,6 +332,10 @@
                     <p>Click to upload an image or drag and drop</p>
                     <input type="file" id="image-input" accept="image/*" style="display: none;">
                     <img id="preview" style="display: none;">
+                    <canvas id="masking-canvas" class="masking-canvas" style="display: none;"></canvas>
+                    <div id="mask-instructions" class="mask-instructions">
+                        Click and drag to select the foreground area
+                    </div>
                 </div>
                 
                 <div class="controls">
@@ -279,6 +355,7 @@
                             <option value="standard">Standard (@%#*+=-:. )</option>
                             <option value="simple">Simple (#. )</option>
                             <option value="complex">Complex ($@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\|()1{}[]?-_+~<>i!lI;:,"^`'. )</option>
+                            <option value="bold-complex">Bold Complex</option>
                             <option value="arabic">Arabic Script</option>
                             <option value="korean">Korean (Hangul)</option>
                             <option value="custom">Custom</option>
@@ -319,7 +396,7 @@
                     </div>
                     
                     <div class="control-group">
-                        <label>Colour Mode</label>
+                        <label>Background Colour Mode</label>
                         <select id="color-mode">
                             <option value="none">No Colour</option>
                             <option value="none-inverted">No Colour (Inverted)</option>
@@ -407,7 +484,7 @@
                         </div>
                     </div>
                     
-                    <!-- Display Settings moved here from the tab -->
+                    <!-- Display Settings -->
                     <div class="control-group">
                         <label for="font-size">Character Size</label>
                         <div class="slider-container">
@@ -444,6 +521,114 @@
                     
                     <div class="control-group">
                         <button id="reset-display-settings" class="download-btn" style="background-color: #e74c3c; margin-top: 15px;">Reset to Default Settings</button>
+                    </div>
+                </div>
+                
+                <!-- Masking Section -->
+                <div class="masking-section">
+                    <h3>Foreground/Background Masking</h3>
+                    <div class="control-group">
+                        <label for="mask-mode">Masking Mode</label>
+                        <select id="mask-mode">
+                            <option value="none">No Masking</option>
+                            <option value="rectangle">Rectangle Selection</option>
+                        </select>
+                        
+                        <div id="mask-controls" style="display: none; margin-top: 10px;">
+                            <button id="create-mask" class="masking-btn">Select Area</button>
+                            <button id="clear-mask" class="masking-btn" style="background-color: #e74c3c;">Clear Selection</button>
+                        </div>
+                    </div>
+                    
+                    <div id="foreground-color-section" style="display: none; margin-top: 15px;">
+                        <div class="control-group">
+                            <label for="foreground-color-mode">Foreground Colour Mode</label>
+                            <select id="foreground-color-mode">
+                                <option value="none">No Colour</option>
+                                <option value="none-inverted">No Colour (Inverted)</option>
+                                <option value="original">Original Colours</option>
+                                <option value="original-inverted">Original Colours (Inverted)</option>
+                                <option value="custom">Custom Colour</option>
+                                <option value="custom-inverted">Custom Colour (Inverted)</option>
+                                <option value="gradient">Gradient</option>
+                                <option value="gradient-inverted">Gradient (Inverted)</option>
+                                <option value="riso">RISO Ink</option>
+                                <option value="riso-inverted">RISO Ink (Inverted)</option>
+                                <option value="mixed-riso">Mixed RISO Ink</option>
+                                <option value="mixed-riso-inverted">Mixed RISO Ink (Inverted)</option>
+                            </select>
+                            
+                            <div id="foreground-color-options" style="display: none; margin-top: 10px;">
+                                <input type="color" id="foreground-custom-color" value="#FF48B0">
+                                <div class="color-preset">
+                                    <div class="color-option selected" data-color="#FF48B0" style="background-color: #FF48B0;"></div>
+                                    <div class="color-option" data-color="#3498db" style="background-color: #3498db;"></div>
+                                    <div class="color-option" data-color="#2ecc71" style="background-color: #2ecc71;"></div>
+                                    <div class="color-option" data-color="#e74c3c" style="background-color: #e74c3c;"></div>
+                                    <div class="color-option" data-color="#f39c12" style="background-color: #f39c12;"></div>
+                                </div>
+                            </div>
+                            
+                            <div id="foreground-gradient-options" style="display: none; margin-top: 10px;">
+                                <label>Start Colour:</label>
+                                <input type="color" id="foreground-gradient-start" value="#FF48B0">
+                                <label>End Colour:</label>
+                                <input type="color" id="foreground-gradient-end" value="#3498db">
+                            </div>
+                            
+                            <div id="foreground-riso-options" style="display: none; margin-top: 10px;">
+                                <label>RISO Ink Colour:</label>
+                                <select id="foreground-riso-color">
+                                    <option value="#FF48B0">Fluorescent Pink</option>
+                                    <option value="#0078BF">Blue</option>
+                                    <option value="#00A95C">Green</option>
+                                    <option value="#FF665E">Bright Red</option>
+                                    <option value="#FFE800">Yellow</option>
+                                    <option value="#3255A4">Medium Blue</option>
+                                    <option value="#FF8B00">Orange</option>
+                                    <option value="#9D2768">Burgundy</option>
+                                    <option value="#00838A">Teal</option>
+                                    <option value="#9164CD">Purple</option>
+                                    <option value="#444444">Flat Gold</option>
+                                </select>
+                            </div>
+                            
+                            <div id="foreground-mixed-riso-options" style="display: none; margin-top: 10px;">
+                                <label>Primary RISO Ink (Shadows):</label>
+                                <select id="foreground-riso-color1">
+                                    <option value="#FF48B0">Fluorescent Pink</option>
+                                    <option value="#0078BF">Blue</option>
+                                    <option value="#00A95C">Green</option>
+                                    <option value="#FF665E">Bright Red</option>
+                                    <option value="#FFE800">Yellow</option>
+                                    <option value="#3255A4">Medium Blue</option>
+                                    <option value="#FF8B00">Orange</option>
+                                    <option value="#9D2768">Burgundy</option>
+                                    <option value="#00838A">Teal</option>
+                                    <option value="#9164CD">Purple</option>
+                                    <option value="#444444">Flat Gold</option>
+                                </select>
+                                <label>Secondary RISO Ink (Highlights):</label>
+                                <select id="foreground-riso-color2">
+                                    <option value="#3498db">Blue</option>
+                                    <option value="#FF48B0">Fluorescent Pink</option>
+                                    <option value="#00A95C">Green</option>
+                                    <option value="#FF665E">Bright Red</option>
+                                    <option value="#FFE800">Yellow</option>
+                                    <option value="#3255A4">Medium Blue</option>
+                                    <option value="#FF8B00">Orange</option>
+                                    <option value="#9D2768">Burgundy</option>
+                                    <option value="#00838A">Teal</option>
+                                    <option value="#9164CD">Purple</option>
+                                    <option value="#444444">Flat Gold</option>
+                                </select>
+                                <label>Mix Threshold:</label>
+                                <div class="slider-container">
+                                    <input type="range" id="foreground-riso-threshold" min="0" max="255" value="128">
+                                    <span class="slider-value" id="foreground-riso-threshold-value">128</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 
@@ -513,6 +698,30 @@
             const resetDisplayBtn = document.getElementById('reset-display-settings');
             const loading = document.getElementById('loading');
             
+            // Masking elements
+            const maskModeSelect = document.getElementById('mask-mode');
+            const maskControls = document.getElementById('mask-controls');
+            const createMaskBtn = document.getElementById('create-mask');
+            const clearMaskBtn = document.getElementById('clear-mask');
+            const maskingCanvas = document.getElementById('masking-canvas');
+            const maskInstructions = document.getElementById('mask-instructions');
+            const foregroundColorSection = document.getElementById('foreground-color-section');
+            const foregroundColorModeSelect = document.getElementById('foreground-color-mode');
+            const foregroundColorOptions = document.getElementById('foreground-color-options');
+            const foregroundGradientOptions = document.getElementById('foreground-gradient-options');
+            const foregroundRisoOptions = document.getElementById('foreground-riso-options');
+            const foregroundMixedRisoOptions = document.getElementById('foreground-mixed-riso-options');
+            const foregroundCustomColorInput = document.getElementById('foreground-custom-color');
+            const foregroundRisoThresholdSlider = document.getElementById('foreground-riso-threshold');
+            const foregroundRisoThresholdValue = document.getElementById('foreground-riso-threshold-value');
+            
+            // Masking context
+            const maskCtx = maskingCanvas.getContext('2d');
+            let isDrawing = false;
+            let maskStartX = 0;
+            let maskStartY = 0;
+            let maskData = null; // Will store x, y, width, height of selected area
+            
             // Image data
             let originalImage = null;
             let processedAscii = null;
@@ -561,6 +770,9 @@
                     preview.src = e.target.result;
                     preview.style.display = 'block';
                     loadImage(e.target.result);
+                    
+                    // Clear any existing mask
+                    clearMask();
                 };
                 reader.readAsDataURL(file);
             }
@@ -569,8 +781,21 @@
                 originalImage = new Image();
                 originalImage.onload = function() {
                     // Image is loaded and ready for processing
+                    // Setup masking canvas if needed
+                    adjustMaskingCanvas();
                 };
                 originalImage.src = src;
+            }
+            
+            // Function to adjust the masking canvas to match the preview image
+            function adjustMaskingCanvas() {
+                if (!preview) return;
+                
+                const rect = preview.getBoundingClientRect();
+                maskingCanvas.width = rect.width;
+                maskingCanvas.height = rect.height;
+                maskingCanvas.style.top = preview.offsetTop + 'px';
+                maskingCanvas.style.left = preview.offsetLeft + 'px';
             }
             
             // Character set handling
@@ -590,6 +815,10 @@
             // RISO threshold handling
             risoThresholdSlider.addEventListener('input', function() {
                 risoThresholdValue.textContent = this.value;
+            });
+            
+            foregroundRisoThresholdSlider.addEventListener('input', function() {
+                foregroundRisoThresholdValue.textContent = this.value;
             });
             
             // Color mode handling
@@ -612,13 +841,42 @@
                 }
             });
             
+            // Foreground color mode handling
+            foregroundColorModeSelect.addEventListener('change', function() {
+                foregroundColorOptions.style.display = 'none';
+                foregroundGradientOptions.style.display = 'none';
+                foregroundRisoOptions.style.display = 'none';
+                foregroundMixedRisoOptions.style.display = 'none';
+                
+                const baseColorMode = this.value.replace('-inverted', '');
+                
+                if (baseColorMode === 'custom') {
+                    foregroundColorOptions.style.display = 'block';
+                } else if (baseColorMode === 'gradient') {
+                    foregroundGradientOptions.style.display = 'block';
+                } else if (baseColorMode === 'riso') {
+                    foregroundRisoOptions.style.display = 'block';
+                } else if (baseColorMode === 'mixed-riso') {
+                    foregroundMixedRisoOptions.style.display = 'block';
+                }
+            });
+            
             // Color presets
             colorPresets.forEach(preset => {
                 preset.addEventListener('click', function() {
-                    colorPresets.forEach(p => p.classList.remove('selected'));
+                    // Find all color options in the same container
+                    const container = this.closest('.color-preset');
+                    const options = container.querySelectorAll('.color-option');
+                    
+                    options.forEach(p => p.classList.remove('selected'));
                     this.classList.add('selected');
-                    const color = this.getAttribute('data-color');
-                    customColorInput.value = color;
+                    
+                    // Find the associated color input
+                    const colorInput = container.previousElementSibling;
+                    if (colorInput && colorInput.type === 'color') {
+                        const color = this.getAttribute('data-color');
+                        colorInput.value = color;
+                    }
                 });
             });
             
@@ -691,6 +949,160 @@
                 brightnessValue.textContent = `${this.value}%`;
             });
             
+            // Masking mode handling
+            maskModeSelect.addEventListener('change', function() {
+                if (this.value === 'none') {
+                    maskControls.style.display = 'none';
+                    foregroundColorSection.style.display = 'none';
+                    clearMask();
+                } else {
+                    maskControls.style.display = 'block';
+                    foregroundColorSection.style.display = 'block';
+                }
+            });
+            
+            // Create mask button
+            createMaskBtn.addEventListener('click', function() {
+                if (!originalImage) {
+                    alert('Please upload an image first.');
+                    return;
+                }
+                
+                // Show masking canvas and instructions
+                maskingCanvas.style.display = 'block';
+                maskInstructions.style.display = 'block';
+                
+                // Clear any existing mask
+                clearMaskCanvas();
+                
+                // Setup masking events
+                setupMasking();
+            });
+            
+            // Clear mask button
+            clearMaskBtn.addEventListener('click', function() {
+                clearMask();
+            });
+            
+            function clearMask() {
+                maskData = null;
+                clearMaskCanvas();
+                maskingCanvas.style.display = 'none';
+                maskInstructions.style.display = 'none';
+            }
+            
+            function clearMaskCanvas() {
+                if (maskCtx) {
+                    maskCtx.clearRect(0, 0, maskingCanvas.width, maskingCanvas.height);
+                }
+            }
+            
+            // Setup masking functionality
+            function setupMasking() {
+                maskingCanvas.addEventListener('mousedown', startMasking);
+                maskingCanvas.addEventListener('mousemove', updateMasking);
+                maskingCanvas.addEventListener('mouseup', endMasking);
+                maskingCanvas.addEventListener('mouseleave', endMasking);
+                
+                // Touch support
+                maskingCanvas.addEventListener('touchstart', handleTouchStart);
+                maskingCanvas.addEventListener('touchmove', handleTouchMove);
+                maskingCanvas.addEventListener('touchend', handleTouchEnd);
+            }
+            
+            function startMasking(e) {
+                isDrawing = true;
+                const rect = maskingCanvas.getBoundingClientRect();
+                maskStartX = e.clientX - rect.left;
+                maskStartY = e.clientY - rect.top;
+                
+                // Clear previous mask
+                clearMaskCanvas();
+            }
+            
+            function updateMasking(e) {
+                if (!isDrawing) return;
+                
+                const rect = maskingCanvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                // Clear and redraw
+                clearMaskCanvas();
+                
+                // Draw selection rectangle
+                maskCtx.strokeStyle = '#FF48B0';
+                maskCtx.lineWidth = 2;
+                maskCtx.setLineDash([5, 5]);
+                
+                const width = x - maskStartX;
+                const height = y - maskStartY;
+                
+                maskCtx.strokeRect(maskStartX, maskStartY, width, height);
+                
+                // Fill with semi-transparent color
+                maskCtx.fillStyle = 'rgba(255, 72, 176, 0.2)';
+                maskCtx.fillRect(maskStartX, maskStartY, width, height);
+            }
+            
+            function endMasking(e) {
+                if (!isDrawing) return;
+                
+                const rect = maskingCanvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                // Calculate mask dimensions
+                let maskX = Math.min(maskStartX, x);
+                let maskY = Math.min(maskStartY, y);
+                let maskWidth = Math.abs(x - maskStartX);
+                let maskHeight = Math.abs(y - maskStartY);
+                
+                // Store mask data
+                maskData = {
+                    x: maskX / maskingCanvas.width,  // Store as ratio of canvas size
+                    y: maskY / maskingCanvas.height,
+                    width: maskWidth / maskingCanvas.width,
+                    height: maskHeight / maskingCanvas.height
+                };
+                
+                isDrawing = false;
+                
+                // Hide instructions
+                maskInstructions.style.display = 'none';
+            }
+            
+            // Touch event handlers
+            function handleTouchStart(e) {
+                e.preventDefault();
+                if (e.touches.length === 1) {
+                    const touch = e.touches[0];
+                    const mouseEvent = new MouseEvent('mousedown', {
+                        clientX: touch.clientX,
+                        clientY: touch.clientY
+                    });
+                    startMasking(mouseEvent);
+                }
+            }
+            
+            function handleTouchMove(e) {
+                e.preventDefault();
+                if (e.touches.length === 1) {
+                    const touch = e.touches[0];
+                    const mouseEvent = new MouseEvent('mousemove', {
+                        clientX: touch.clientX,
+                        clientY: touch.clientY
+                    });
+                    updateMasking(mouseEvent);
+                }
+            }
+            
+            function handleTouchEnd(e) {
+                e.preventDefault();
+                const mouseEvent = new MouseEvent('mouseup', {});
+                endMasking(mouseEvent);
+            }
+            
             // Main conversion function
             convertBtn.addEventListener('click', function() {
                 if (!originalImage) {
@@ -710,6 +1122,8 @@
                     const brightness = parseFloat(brightnessSlider.value) / 100;
                     const aspectRatio = parseFloat(aspectRatioSlider.value);
                     const colorMode = colorModeSelect.value;
+                    const useMasking = maskModeSelect.value !== 'none' && maskData !== null;
+                    const foregroundColorMode = foregroundColorModeSelect.value;
                     
                     let chars;
                     if (charsetType === 'standard') {
@@ -717,6 +1131,8 @@
                     } else if (charsetType === 'simple') {
                         chars = '#. ';
                     } else if (charsetType === 'complex') {
+                        chars = '$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\\|()1{}[]?-_+~<>i!lI;:,"^`\'. ';
+                    } else if (charsetType === 'bold-complex') {
                         chars = '$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\\|()1{}[]?-_+~<>i!lI;:,"^`\'. ';
                     } else if (charsetType === 'arabic') {
                         chars = 'ابتثجحخدذرزسشصضطظعغفقكلمنهويءآأؤإئىةـڢڤڥڦڧڨݐݑݒݓݔݕݖݗݘݙݚݛݜݝݞݟݠݡࡀࡁࡂࡃࡄࡅࡆࡇࡈࡉࡊࡋࡌࡍࡎࡏࡐࡑࡒࡓࡔࡕࡖࡗࡘ ';
@@ -732,25 +1148,57 @@
                         chars = chars.split('').reverse().join('');
                     }
                     
-                    // Process the image
-                    const result = convertToAscii(originalImage, chars, resolution, contrast, brightness, mode, colorMode, aspectRatio);
-                    
-                    // Display the result
-                    if (colorMode.startsWith('none')) {
-                        asciiOutput.innerHTML = result.text;
-                        asciiOutput.style.color = textColorInput.value;
-                    } else {
+                    // If using masking, process with dual modes
+                    if (useMasking) {
+                        const result = convertToAsciiWithMask(
+                            originalImage, 
+                            chars, 
+                            resolution, 
+                            contrast, 
+                            brightness, 
+                            mode, 
+                            colorMode, 
+                            foregroundColorMode,
+                            aspectRatio,
+                            maskData,
+                            charsetType === 'bold-complex'
+                        );
+                        
+                        // Display the result
                         asciiOutput.innerHTML = result.html;
+                        processedAscii = result;
+                    } else {
+                        // Standard processing without masking
+                        const result = convertToAscii(
+                            originalImage, 
+                            chars, 
+                            resolution, 
+                            contrast, 
+                            brightness, 
+                            mode, 
+                            colorMode, 
+                            aspectRatio,
+                            charsetType === 'bold-complex'
+                        );
+                        
+                        // Display the result
+                        if (colorMode.startsWith('none')) {
+                            asciiOutput.innerHTML = result.text;
+                            asciiOutput.style.color = textColorInput.value;
+                        } else {
+                            asciiOutput.innerHTML = result.html;
+                        }
+                        
+                        processedAscii = result;
                     }
                     
-                    processedAscii = result;
                     loading.style.display = 'none';
                     asciiOutput.style.display = 'block';
                 }, 100);
             });
             
             // Function to convert image to ASCII
-            function convertToAscii(img, charset, resolution, contrast, brightness, mode, colorMode, aspectRatio) {
+            function convertToAscii(img, charset, resolution, contrast, brightness, mode, colorMode, aspectRatio, useBold = false) {
                 // Create canvas for image processing
                 const canvas = document.createElement('canvas');
                 const ctx = canvas.getContext('2d');
@@ -838,16 +1286,31 @@
                         const char = charset[charIndex];
                         asciiText += char;
                         
+                        // Determine if character should be bold (based on brightness and user selection)
+                        const shouldBeBold = useBold && brightness > 128;
+                        
                         // Colour handling for HTML output
                         if (baseColorMode === 'none') {
-                            asciiHtml += char;
+                            if (shouldBeBold) {
+                                asciiHtml += `<strong>${char}</strong>`;
+                            } else {
+                                asciiHtml += char;
+                            }
                         } else if (baseColorMode === 'original') {
-                            asciiHtml += `<span style="color: rgb(${r}, ${g}, ${b});">${char}</span>`;
+                            if (shouldBeBold) {
+                                asciiHtml += `<span style="color: rgb(${r}, ${g}, ${b}); font-weight: bold;">${char}</span>`;
+                            } else {
+                                asciiHtml += `<span style="color: rgb(${r}, ${g}, ${b});">${char}</span>`;
+                            }
                         } else if (baseColorMode === 'custom') {
                             const color = customColorInput.value;
                             // Apply opacity based on brightness
                             const opacity = brightness / 255;
-                            asciiHtml += `<span style="color: ${color}; opacity: ${opacity};">${char}</span>`;
+                            if (shouldBeBold) {
+                                asciiHtml += `<span style="color: ${color}; opacity: ${opacity}; font-weight: bold;">${char}</span>`;
+                            } else {
+                                asciiHtml += `<span style="color: ${color}; opacity: ${opacity};">${char}</span>`;
+                            }
                         } else if (baseColorMode === 'gradient') {
                             const startColor = hexToRgb(document.getElementById('gradient-start').value);
                             const endColor = hexToRgb(document.getElementById('gradient-end').value);
@@ -857,12 +1320,20 @@
                             const g = Math.floor(startColor.g + ratio * (endColor.g - startColor.g));
                             const b = Math.floor(startColor.b + ratio * (endColor.b - startColor.b));
                             
-                            asciiHtml += `<span style="color: rgb(${r}, ${g}, ${b});">${char}</span>`;
+                            if (shouldBeBold) {
+                                asciiHtml += `<span style="color: rgb(${r}, ${g}, ${b}); font-weight: bold;">${char}</span>`;
+                            } else {
+                                asciiHtml += `<span style="color: rgb(${r}, ${g}, ${b});">${char}</span>`;
+                            }
                         } else if (baseColorMode === 'riso') {
                             const risoColor = document.getElementById('riso-color').value;
                             // Apply RISO color with brightness-based opacity for halftone-like effect
                             const opacity = brightness / 255;
-                            asciiHtml += `<span style="color: ${risoColor}; opacity: ${opacity};">${char}</span>`;
+                            if (shouldBeBold) {
+                                asciiHtml += `<span style="color: ${risoColor}; opacity: ${opacity}; font-weight: bold;">${char}</span>`;
+                            } else {
+                                asciiHtml += `<span style="color: ${risoColor}; opacity: ${opacity};">${char}</span>`;
+                            }
                         } else if (baseColorMode === 'mixed-riso') {
                             const risoColor1 = document.getElementById('riso-color1').value;
                             const risoColor2 = document.getElementById('riso-color2').value;
@@ -875,7 +1346,11 @@
                                 (1 - brightness / threshold) * 0.8 + 0.2 : // Map 0-threshold to 1.0-0.2
                                 ((brightness - threshold) / (255 - threshold)) * 0.8 + 0.2; // Map threshold-255 to 1.0-0.2
                             
-                            asciiHtml += `<span style="color: ${color}; opacity: ${opacity};">${char}</span>`;
+                            if (shouldBeBold) {
+                                asciiHtml += `<span style="color: ${color}; opacity: ${opacity}; font-weight: bold;">${char}</span>`;
+                            } else {
+                                asciiHtml += `<span style="color: ${color}; opacity: ${opacity};">${char}</span>`;
+                            }
                         }
                     }
                     asciiText += '\n';
@@ -885,6 +1360,224 @@
                 return {
                     text: asciiText,
                     html: asciiHtml
+                };
+            }
+            
+            // Function to convert image to ASCII with masking
+            function convertToAsciiWithMask(img, charset, resolution, contrast, brightness, mode, bgColorMode, fgColorMode, aspectRatio, mask, useBold = false) {
+                // Create canvas for image processing
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                // Calculate dimensions
+                let width, height;
+                const maxWidth = resolution;
+                const origAspectRatio = img.width / img.height;
+                
+                if (origAspectRatio > 1) {
+                    width = maxWidth;
+                    height = Math.floor(width / origAspectRatio / aspectRatio);
+                } else {
+                    height = Math.floor(maxWidth / aspectRatio);
+                    width = Math.floor(height * origAspectRatio);
+                }
+                
+                canvas.width = width;
+                canvas.height = height;
+                
+                // Draw image with adjustments
+                ctx.drawImage(img, 0, 0, width, height);
+                
+                // Apply contrast and brightness
+                const imageData = ctx.getImageData(0, 0, width, height);
+                const pixels = imageData.data;
+                
+                for (let i = 0; i < pixels.length; i += 4) {
+                    // Apply brightness
+                    pixels[i] = Math.min(255, pixels[i] * brightness);
+                    pixels[i + 1] = Math.min(255, pixels[i + 1] * brightness);
+                    pixels[i + 2] = Math.min(255, pixels[i + 2] * brightness);
+                    
+                    // Apply contrast
+                    const factor = (259 * (contrast + 255)) / (255 * (259 - contrast));
+                    pixels[i] = factor * (pixels[i] - 128) + 128;
+                    pixels[i + 1] = factor * (pixels[i + 1] - 128) + 128;
+                    pixels[i + 2] = factor * (pixels[i + 2] - 128) + 128;
+                }
+                
+                ctx.putImageData(imageData, 0, 0);
+                
+                // Create ASCII output
+                let asciiHtml = '';
+                
+                // Calculate mask coordinates based on canvas dimensions
+                const maskX = Math.floor(mask.x * width);
+                const maskY = Math.floor(mask.y * height);
+                const maskWidth = Math.floor(mask.width * width);
+                const maskHeight = Math.floor(mask.height * height);
+                
+                // Determine base color modes (without -inverted)
+                const baseBgColorMode = bgColorMode.replace('-inverted', '');
+                const baseFgColorMode = fgColorMode.replace('-inverted', '');
+                
+                // Check if we need to invert the charset for foreground
+                let fgCharset = charset;
+                if (fgColorMode.includes('-inverted')) {
+                    fgCharset = charset.split('').reverse().join('');
+                }
+                
+                for (let y = 0; y < height; y++) {
+                    for (let x = 0; x < width; x++) {
+                        const pixelData = ctx.getImageData(x, y, 1, 1).data;
+                        const r = pixelData[0];
+                        const g = pixelData[1];
+                        const b = pixelData[2];
+                        
+                        // Calculate pixel brightness (weighted RGB)
+                        let brightness;
+                        if (mode === 'detailed' || mode === 'realistic') {
+                            // More weight to green for better detail perception
+                            brightness = 0.299 * r + 0.587 * g + 0.114 * b;
+                        } else {
+                            // Standard brightness calculation
+                            brightness = (r + g + b) / 3;
+                        }
+                        
+                        // Check if pixel is inside the mask
+                        const isInMask = (
+                            x >= maskX && 
+                            x < maskX + maskWidth && 
+                            y >= maskY && 
+                            y < maskY + maskHeight
+                        );
+                        
+                        // Choose appropriate color mode and charset based on mask
+                        const colorMode = isInMask ? baseFgColorMode : baseBgColorMode;
+                        const charsetToUse = isInMask ? fgCharset : charset;
+                        
+                        // Map brightness to character
+                        let charIndex;
+                        const len = charsetToUse.length - 1;
+                        if (mode === 'stylized') {
+                            // Non-linear mapping for stylized effect
+                            charIndex = Math.floor((Math.pow(brightness / 255, 1.5)) * len);
+                        } else if (mode === 'realistic') {
+                            // Enhance mid-tones for more realistic representation
+                            const adjusted = brightness / 255;
+                            const enhanced = adjusted < 0.5 
+                                ? 0.5 * Math.pow(adjusted * 2, 0.8)
+                                : 0.5 + 0.5 * Math.pow((adjusted - 0.5) * 2, 1.2);
+                            charIndex = Math.floor(enhanced * len);
+                        } else {
+                            // Linear mapping for classic mode
+                            charIndex = Math.floor((brightness / 255) * len);
+                        }
+                        
+                        const char = charsetToUse[charIndex];
+                        
+                        // Determine if character should be bold
+                        const shouldBeBold = useBold && brightness > 128;
+                        
+                        // Apply appropriate color mode based on whether pixel is in foreground or background
+                        if (colorMode === 'none') {
+                            if (shouldBeBold) {
+                                asciiHtml += `<strong>${char}</strong>`;
+                            } else {
+                                asciiHtml += char;
+                            }
+                        } else if (colorMode === 'original') {
+                            if (shouldBeBold) {
+                                asciiHtml += `<span style="color: rgb(${r}, ${g}, ${b}); font-weight: bold;">${char}</span>`;
+                            } else {
+                                asciiHtml += `<span style="color: rgb(${r}, ${g}, ${b});">${char}</span>`;
+                            }
+                        } else if (colorMode === 'custom') {
+                            // Select appropriate custom color input based on whether in foreground or background
+                            const colorInput = isInMask ? foregroundCustomColorInput : customColorInput;
+                            const color = colorInput.value;
+                            const opacity = brightness / 255;
+                            
+                            if (shouldBeBold) {
+                                asciiHtml += `<span style="color: ${color}; opacity: ${opacity}; font-weight: bold;">${char}</span>`;
+                            } else {
+                                asciiHtml += `<span style="color: ${color}; opacity: ${opacity};">${char}</span>`;
+                            }
+                        } else if (colorMode === 'gradient') {
+                            // Select appropriate gradient inputs based on whether in foreground or background
+                            const startInput = isInMask ? 
+                                document.getElementById('foreground-gradient-start') : 
+                                document.getElementById('gradient-start');
+                            
+                            const endInput = isInMask ? 
+                                document.getElementById('foreground-gradient-end') : 
+                                document.getElementById('gradient-end');
+                            
+                            const startColor = hexToRgb(startInput.value);
+                            const endColor = hexToRgb(endInput.value);
+                            const ratio = brightness / 255;
+                            
+                            const r = Math.floor(startColor.r + ratio * (endColor.r - startColor.r));
+                            const g = Math.floor(startColor.g + ratio * (endColor.g - startColor.g));
+                            const b = Math.floor(startColor.b + ratio * (endColor.b - startColor.b));
+                            
+                            if (shouldBeBold) {
+                                asciiHtml += `<span style="color: rgb(${r}, ${g}, ${b}); font-weight: bold;">${char}</span>`;
+                            } else {
+                                asciiHtml += `<span style="color: rgb(${r}, ${g}, ${b});">${char}</span>`;
+                            }
+                        } else if (colorMode === 'riso') {
+                            // Select appropriate RISO color input based on whether in foreground or background
+                            const risoInput = isInMask ? 
+                                document.getElementById('foreground-riso-color') : 
+                                document.getElementById('riso-color');
+                            
+                            const risoColor = risoInput.value;
+                            const opacity = brightness / 255;
+                            
+                            if (shouldBeBold) {
+                                asciiHtml += `<span style="color: ${risoColor}; opacity: ${opacity}; font-weight: bold;">${char}</span>`;
+                            } else {
+                                asciiHtml += `<span style="color: ${risoColor}; opacity: ${opacity};">${char}</span>`;
+                            }
+                        } else if (colorMode === 'mixed-riso') {
+                            // Select appropriate mixed RISO settings based on whether in foreground or background
+                            const color1Input = isInMask ? 
+                                document.getElementById('foreground-riso-color1') : 
+                                document.getElementById('riso-color1');
+                            
+                            const color2Input = isInMask ? 
+                                document.getElementById('foreground-riso-color2') : 
+                                document.getElementById('riso-color2');
+                            
+                            const thresholdInput = isInMask ? 
+                                document.getElementById('foreground-riso-threshold') : 
+                                document.getElementById('riso-threshold');
+                            
+                            const risoColor1 = color1Input.value;
+                            const risoColor2 = color2Input.value;
+                            const threshold = parseInt(thresholdInput.value);
+                            
+                            // Use primary color for darker tones and secondary for lighter
+                            const color = brightness < threshold ? risoColor1 : risoColor2;
+                            // Apply brightness-based opacity for halftone-like effect
+                            const opacity = brightness < threshold ? 
+                                (1 - brightness / threshold) * 0.8 + 0.2 : // Map 0-threshold to 1.0-0.2
+                                ((brightness - threshold) / (255 - threshold)) * 0.8 + 0.2; // Map threshold-255 to 1.0-0.2
+                            
+                            if (shouldBeBold) {
+                                asciiHtml += `<span style="color: ${color}; opacity: ${opacity}; font-weight: bold;">${char}</span>`;
+                            } else {
+                                asciiHtml += `<span style="color: ${color}; opacity: ${opacity};">${char}</span>`;
+                            }
+                        }
+                    }
+                    asciiHtml += '<br>';
+                }
+                
+                // Return the masked ASCII art
+                return {
+                    html: asciiHtml,
+                    text: 'Masked ASCII art - please view in HTML mode' // Placeholder for text version
                 };
             }
             
@@ -936,7 +1629,7 @@
                         <style>${style}</style>
                     </head>
                     <body>
-                        ${colorModeSelect.value.startsWith('none') ? 
+                        ${colorModeSelect.value.startsWith('none') && !maskModeSelect.value !== 'none' ? 
                           `<div style="color: ${textColorInput.value};">${processedAscii.text.replace(/\n/g, '<br>')}</div>` : 
                           processedAscii.html}
                     </body>
@@ -972,7 +1665,7 @@
                 container.style.top = '-9999px';
                 
                 // Insert the ASCII content
-                if (colorModeSelect.value.startsWith('none')) {
+                if (colorModeSelect.value.startsWith('none') && maskModeSelect.value === 'none') {
                     container.style.color = textColorInput.value;
                     container.textContent = processedAscii.text;
                 } else {
@@ -1009,10 +1702,10 @@
                                         font-size: ${fontSizeSlider.value}px;
                                         letter-spacing: ${letterSpacingSlider.value}em;
                                         padding: 15px;
-                                        color: ${colorModeSelect.value.startsWith('none') ? textColorInput.value : 'inherited'};
+                                        color: ${colorModeSelect.value.startsWith('none') && maskModeSelect.value === 'none' ? textColorInput.value : 'inherited'};
                                     }
                                 </style>
-                                <pre>${colorModeSelect.value.startsWith('none') ? 
+                                <pre>${colorModeSelect.value.startsWith('none') && maskModeSelect.value === 'none' ? 
                                     processedAscii.text.replace(/</g, '&lt;').replace(/>/g, '&gt;') : 
                                     processedAscii.html}</pre>
                             </div>
@@ -1039,6 +1732,9 @@
                 
                 img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(data);
             });
+            
+            // Initialize UI
+            window.addEventListener('resize', adjustMaskingCanvas);
         });
     </script>
 </body>
