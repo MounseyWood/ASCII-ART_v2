@@ -1,4 +1,20 @@
-<!DOCTYPE html>
+// Download as TXT
+            downloadTxtBtn.addEventListener('click', function() {
+                if (!processedAscii) {
+                    alert('Please convert an image to ASCII art first.');
+                    return;
+                }
+                
+                const blob = new Blob([processedAscii.text], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'ascii_art.txt';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            });<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -1827,165 +1843,169 @@
                 loadingIndicator.style.zIndex = '9999';
                 document.body.appendChild(loadingIndicator);
                 
-                // Delay to allow UI to update
-                setTimeout(function() {
-                    try {
-                        // Create a temporary container with the same styling as the output
-                        const container = document.createElement('div');
-                        container.style.backgroundColor = bgColorInput.value;
-                        container.style.fontFamily = 'monospace';
-                        container.style.whiteSpace = 'pre';
-                        container.style.lineHeight = lineHeightSlider.value;
-                        container.style.fontSize = fontSizeSlider.value + 'px';
-                        container.style.letterSpacing = letterSpacingSlider.value + 'em';
-                        container.style.padding = '15px';
-                        container.style.width = asciiOutput.offsetWidth + 'px';
-                        container.style.position = 'absolute';
-                        container.style.left = '-9999px';
-                        container.style.top = '-9999px';
-                        container.style.visibility = 'hidden';
+                try {
+                    // Get ASCII content - prefer the actual visible output text
+                    const rawText = colorModeSelect.value.startsWith('none') && maskModeSelect.value === 'none' ? 
+                        processedAscii.text : 
+                        asciiOutput.innerText || asciiOutput.textContent;
+                    
+                    // Split into lines
+                    const lines = rawText.split('\n');
+                    
+                    // Calculate dimensions
+                    const charWidth = fontSizeSlider.value * 0.6; // Approximate width of monospace character
+                    const lineHeight = parseFloat(lineHeightSlider.value) * fontSizeSlider.value;
+                    
+                    // Find the longest line to determine width
+                    let maxLineLength = 0;
+                    lines.forEach(line => {
+                        maxLineLength = Math.max(maxLineLength, line.length);
+                    });
+                    
+                    // Add some padding
+                    const padding = 20;
+                    const width = Math.ceil(maxLineLength * charWidth) + padding * 2;
+                    const height = Math.ceil(lines.length * lineHeight) + padding * 2;
+                    
+                    // Create canvas
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    
+                    // Fill background
+                    ctx.fillStyle = bgColorInput.value;
+                    ctx.fillRect(0, 0, width, height);
+                    
+                    // Direct drawing approach for non-colored ASCII
+                    if (colorModeSelect.value.startsWith('none') && maskModeSelect.value === 'none') {
+                        // Set text properties
+                        ctx.font = `${fontSizeSlider.value}px monospace`;
+                        ctx.fillStyle = textColorInput.value;
+                        ctx.textBaseline = 'top';
                         
-                        // Insert the ASCII content - use the actual visible output element as reference
-                        container.innerHTML = asciiOutput.innerHTML;
+                        // Draw each line
+                        lines.forEach((line, index) => {
+                            ctx.fillText(line, padding, padding + index * lineHeight);
+                        });
                         
-                        document.body.appendChild(container);
+                        finishPngGeneration();
+                    } else {
+                        // For colored ASCII, we need to render from the HTML content
+                        // First, get a clean copy of the current output
+                        const outputClone = asciiOutput.cloneNode(true);
+                        outputClone.style.padding = padding + 'px';
+                        outputClone.style.width = width + 'px';
+                        outputClone.style.height = height + 'px';
+                        outputClone.style.backgroundColor = bgColorInput.value;
+                        outputClone.style.position = 'fixed';
+                        outputClone.style.top = '-9999px';
+                        outputClone.style.left = '-9999px';
+                        outputClone.style.fontSize = fontSizeSlider.value + 'px';
+                        outputClone.style.lineHeight = lineHeightSlider.value;
+                        outputClone.style.letterSpacing = letterSpacingSlider.value + 'em';
+                        document.body.appendChild(outputClone);
                         
-                        // Wait a moment for the container to render
-                        setTimeout(function() {
+                        // Use html2canvas if available
+                        if (typeof html2canvas === 'function') {
+                            html2canvas(outputClone, {
+                                backgroundColor: bgColorInput.value,
+                                scale: 1,
+                                logging: false,
+                                ignoreElements: (element) => false
+                            }).then(canvas => {
+                                finishPngGeneration(canvas);
+                                document.body.removeChild(outputClone);
+                            }).catch(error => {
+                                console.error('Error using html2canvas:', error);
+                                fallbackMethod();
+                            });
+                        } else {
+                            fallbackMethod();
+                        }
+                        
+                        function fallbackMethod() {
+                            // Create a simple version with screenshot
                             try {
-                                // Get dimensions
-                                const width = container.offsetWidth;
-                                const height = container.scrollHeight || container.offsetHeight;
+                                // Create a data URL
+                                const dataUrl = `
+                                    <html>
+                                    <head>
+                                        <style>
+                                            body {
+                                                margin: 0;
+                                                padding: ${padding}px;
+                                                background-color: ${bgColorInput.value};
+                                                font-family: monospace;
+                                                font-size: ${fontSizeSlider.value}px;
+                                                line-height: ${lineHeightSlider.value};
+                                                letter-spacing: ${letterSpacingSlider.value}em;
+                                                color: ${textColorInput.value};
+                                                white-space: pre;
+                                            }
+                                        </style>
+                                    </head>
+                                    <body>${outputClone.innerHTML}</body>
+                                    </html>
+                                `;
                                 
-                                if (width === 0 || height === 0) {
-                                    throw new Error('Could not determine dimensions of ASCII art');
-                                }
+                                // Convert the ASCII art to a plain text format without colors
+                                const plainText = lines.join('\n');
                                 
-                                // Create canvas
-                                const canvas = document.createElement('canvas');
-                                canvas.width = width;
-                                canvas.height = height;
-                                const ctx = canvas.getContext('2d');
+                                // Draw plain text to canvas
+                                ctx.font = `${fontSizeSlider.value}px monospace`;
+                                ctx.fillStyle = textColorInput.value;
+                                ctx.textBaseline = 'top';
                                 
-                                // Draw background
-                                ctx.fillStyle = bgColorInput.value;
-                                ctx.fillRect(0, 0, width, height);
+                                lines.forEach((line, index) => {
+                                    ctx.fillText(line, padding, padding + index * lineHeight);
+                                });
                                 
-                                // Use html2canvas if available, otherwise use a basic approach
-                                if (typeof html2canvas === 'function') {
-                                    html2canvas(container).then(canvas => {
-                                        downloadCanvasAsPNG(canvas, 'ascii_art.png');
-                                        document.body.removeChild(container);
-                                        document.body.removeChild(loadingIndicator);
-                                    }).catch(error => {
-                                        console.error('Error generating PNG:', error);
-                                        fallbackRender();
-                                    });
-                                } else {
-                                    fallbackRender();
-                                }
+                                // Save plain version with notice about colors
+                                ctx.fillStyle = 'rgba(0,0,0,0.7)';
+                                ctx.fillRect(10, height - 40, width - 20, 30);
+                                ctx.fillStyle = 'white';
+                                ctx.font = '12px sans-serif';
+                                ctx.fillText('Note: Download as HTML to preserve colors', 20, height - 25);
                                 
-                                function fallbackRender() {
-                                    // Create a temporary canvas-based renderer
-                                    const tempCanvas = document.createElement('canvas');
-                                    const tempCtx = tempCanvas.getContext('2d');
-                                    tempCanvas.width = width;
-                                    tempCanvas.height = height;
-                                    
-                                    // Draw background
-                                    tempCtx.fillStyle = bgColorInput.value;
-                                    tempCtx.fillRect(0, 0, width, height);
-                                    
-                                    // Setup text styles
-                                    tempCtx.font = `${fontSizeSlider.value}px monospace`;
-                                    tempCtx.textBaseline = 'top';
-                                    
-                                    // For simple ASCII without colors, draw the text directly
-                                    if (colorModeSelect.value.startsWith('none') && maskModeSelect.value === 'none') {
-                                        tempCtx.fillStyle = textColorInput.value;
-                                        
-                                        // Draw text line by line
-                                        const lines = processedAscii.text.split('\n');
-                                        const lineHeight = parseFloat(lineHeightSlider.value) * fontSizeSlider.value;
-                                        
-                                        for (let i = 0; i < lines.length; i++) {
-                                            tempCtx.fillText(lines[i], 15, 15 + i * lineHeight);
-                                        }
-                                    } else {
-                                        // For colored ASCII, create a data URL from the container
-                                        const containerHtml = `
-                                            <html>
-                                            <head>
-                                                <style>
-                                                    body {
-                                                        margin: 0;
-                                                        padding: 15px;
-                                                        background-color: ${bgColorInput.value};
-                                                        font-family: monospace;
-                                                        font-size: ${fontSizeSlider.value}px;
-                                                        line-height: ${lineHeightSlider.value};
-                                                        letter-spacing: ${letterSpacingSlider.value}em;
-                                                        white-space: pre;
-                                                    }
-                                                </style>
-                                            </head>
-                                            <body>${container.innerHTML}</body>
-                                            </html>
-                                        `;
-                                        
-                                        // Use image approach as fallback
-                                        const img = new Image();
-                                        img.onload = function() {
-                                            tempCtx.drawImage(img, 0, 0);
-                                            downloadCanvasAsPNG(tempCanvas, 'ascii_art.png');
-                                            document.body.removeChild(container);
-                                            document.body.removeChild(loadingIndicator);
-                                        };
-                                        
-                                        img.onerror = function(error) {
-                                            console.error('Error loading image for fallback approach:', error);
-                                            alert('Failed to generate PNG. Try using the HTML download option instead.');
-                                            document.body.removeChild(container);
-                                            document.body.removeChild(loadingIndicator);
-                                        };
-                                        
-                                        const blob = new Blob([containerHtml], {type: 'text/html'});
-                                        img.src = URL.createObjectURL(blob);
-                                    }
-                                }
-                                
-                                function downloadCanvasAsPNG(canvas, filename) {
-                                    try {
-                                        // Try to get data URL
-                                        const dataURL = canvas.toDataURL('image/png');
-                                        
-                                        // Create download link
-                                        const a = document.createElement('a');
-                                        a.href = dataURL;
-                                        a.download = filename;
-                                        document.body.appendChild(a);
-                                        a.click();
-                                        document.body.removeChild(a);
-                                    } catch (error) {
-                                        console.error('Error creating PNG:', error);
-                                        alert('Failed to generate PNG. Try using a smaller resolution or the HTML download option instead.');
-                                        document.body.removeChild(loadingIndicator);
-                                    }
-                                }
-                                
+                                finishPngGeneration();
+                                document.body.removeChild(outputClone);
                             } catch (error) {
-                                console.error('Error in PNG generation:', error);
-                                alert('Failed to generate PNG. Please try again or use TXT/HTML download instead.');
-                                document.body.removeChild(container);
-                                document.body.removeChild(loadingIndicator);
+                                console.error('Error in fallback method:', error);
+                                showErrorMessage();
+                                document.body.removeChild(outputClone);
                             }
-                        }, 200); // Give time for container to render
-                    } catch (error) {
-                        console.error('Error setting up PNG generation:', error);
-                        alert('Failed to generate PNG. Please try again or use TXT/HTML download instead.');
+                        }
+                    }
+                    
+                    function finishPngGeneration(customCanvas) {
+                        try {
+                            const canvasToUse = customCanvas || canvas;
+                            const dataURL = canvasToUse.toDataURL('image/png');
+                            
+                            // Create download link
+                            const downloadLink = document.createElement('a');
+                            downloadLink.href = dataURL;
+                            downloadLink.download = 'ascii_art.png';
+                            document.body.appendChild(downloadLink);
+                            downloadLink.click();
+                            document.body.removeChild(downloadLink);
+                            document.body.removeChild(loadingIndicator);
+                        } catch (error) {
+                            console.error('Error saving PNG:', error);
+                            showErrorMessage();
+                        }
+                    }
+                    
+                    function showErrorMessage() {
+                        alert('Could not generate PNG. Please try the HTML download option instead, which preserves all colors and formatting.');
                         document.body.removeChild(loadingIndicator);
                     }
-                }, 100);
+                } catch (error) {
+                    console.error('Error in PNG generation:', error);
+                    alert('Could not generate PNG. Please try the HTML download option instead.');
+                    document.body.removeChild(loadingIndicator);
+                }
             });
             
             // Initialize UI
