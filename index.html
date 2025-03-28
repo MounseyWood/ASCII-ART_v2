@@ -782,7 +782,12 @@
             let processedAscii = null;
             
             // File upload handling
-            fileUpload.addEventListener('click', function() {
+            fileUpload.addEventListener('click', function(e) {
+                // Don't trigger file upload if we're in masking mode
+                if (isMaskingActive) {
+                    e.stopPropagation();
+                    return;
+                }
                 imageInput.click();
             });
             
@@ -1020,6 +1025,11 @@
                 brushSizeValue.textContent = brushSize + 'px';
                 brushPreview.style.width = brushSize + 'px';
                 brushPreview.style.height = brushSize + 'px';
+                
+                if (isMaskingActive) {
+                    // Update cursor to show brush size
+                    maskingCanvas.style.cursor = 'crosshair';
+                }
             });
             
             // Masking mode handling
@@ -1081,16 +1091,30 @@
                     
                     // Show masking canvas and instructions
                     maskingCanvas.style.display = 'block';
+                    maskingCanvas.style.zIndex = '20'; // Ensure it's on top
+                    maskingCanvas.style.cursor = 'crosshair';
+                    preview.style.pointerEvents = 'none'; // Prevent clicks on image
+                    
+                    // Add visual indicator that masking is active
+                    fileUpload.style.border = '2px dashed #FF48B0';
+                    
                     maskInstructions.textContent = 'Paint over the areas you want to highlight';
                     maskInstructions.style.display = 'block';
                     
                     // Setup masking events
                     setupMasking();
+                    
+                    // Show a message explaining where to paint
+                    alert('Now paint directly on the image to create your mask. The pink areas will be processed with the foreground color settings.');
                 } else {
                     // Stop masking mode
                     isMaskingActive = false;
                     this.textContent = 'Start Painting Mask';
                     maskInstructions.style.display = 'none';
+                    preview.style.pointerEvents = 'auto';
+                    
+                    // Reset border
+                    fileUpload.style.border = '2px dashed #3498db';
                     
                     // Remove masking events
                     cleanupMasking();
@@ -1111,6 +1135,10 @@
                 clearMaskCanvas();
                 maskingCanvas.style.display = 'none';
                 maskInstructions.style.display = 'none';
+                preview.style.pointerEvents = 'auto';
+                
+                // Reset border
+                fileUpload.style.border = '2px dashed #3498db';
                 
                 if (isMaskingActive) {
                     isMaskingActive = false;
