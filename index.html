@@ -45,6 +45,7 @@
             display: flex;
             flex-direction: column;
             align-items: center;
+            justify-content: center;
             padding: 20px;
             border: 2px dashed #3498db;
             border-radius: 8px;
@@ -53,6 +54,19 @@
             position: relative;
             height: clamp(200px, 30vh, 300px); /* Responsive height */
             overflow: hidden;
+        }
+        
+        .file-upload p {
+            display: flex;
+            align-items: center;
+            font-weight: bold;
+            color: #3498db;
+        }
+        
+        .file-upload p:before {
+            content: "📁";
+            font-size: 1.5em;
+            margin-right: 8px;
         }
         
         .file-upload:hover {
@@ -379,12 +393,11 @@
     </style>
 </head>
 <body>
-    <h1>Image to ASCII Art Converter</h1>
-    
     <div class="container">
         <div class="input-section">
             <div class="input-container">
-                <div class="file-upload" id="file-upload">
+                <h1>Image to ASCII Art Converter</h1>
+                <div class="file-upload" id="file-upload" tabindex="0" role="button" aria-label="Upload an image">
                     <p>Click to upload an image or drag and drop</p>
                     <input type="file" id="image-input" accept="image/*" style="display: none;">
                     <img id="preview" style="display: none;">
@@ -802,14 +815,19 @@
             let originalImage = null;
             let processedAscii = null;
             
-            // File upload handling
+            // File upload handling - make sure it works reliably
             fileUpload.addEventListener('click', function(e) {
                 // Don't trigger file upload if we're in masking mode
                 if (isMaskingActive) {
                     e.stopPropagation();
                     return;
                 }
-                imageInput.click();
+                
+                // Ensure the click event properly triggers the file input
+                e.preventDefault();
+                setTimeout(() => {
+                    imageInput.click();
+                }, 0);
             });
             
             fileUpload.addEventListener('dragover', function(e) {
@@ -822,6 +840,15 @@
                 e.preventDefault();
                 this.style.borderColor = '#3498db';
                 this.style.backgroundColor = 'transparent';
+            });
+            
+            // Add keyboard support for accessibility
+            fileUpload.addEventListener('keydown', function(e) {
+                // Trigger click on Enter or Space
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    imageInput.click();
+                }
             });
             
             fileUpload.addEventListener('drop', function(e) {
