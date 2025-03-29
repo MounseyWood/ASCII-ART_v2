@@ -54,19 +54,19 @@
             position: relative;
             height: clamp(200px, 30vh, 300px); /* Responsive height */
             overflow: hidden;
+            gap: 15px;
+            background-color: rgba(52, 152, 219, 0.05);
+        }
+        
+        .file-upload:hover {
+            border-color: #2980b9;
+            background-color: rgba(52, 152, 219, 0.1);
         }
         
         .file-upload p {
-            display: flex;
-            align-items: center;
-            font-weight: bold;
+            margin: 10px 0;
+            font-weight: 500;
             color: #3498db;
-        }
-        
-        .file-upload p:before {
-            content: "📁";
-            font-size: 1.5em;
-            margin-right: 8px;
         }
         
         .file-upload:hover {
@@ -398,8 +398,13 @@
             <div class="input-container">
                 <h1>Image to ASCII Art Converter</h1>
                 <div class="file-upload" id="file-upload" tabindex="0" role="button" aria-label="Upload an image">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#3498db" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="17 8 12 3 7 8"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
                     <p>Click to upload an image or drag and drop</p>
-                    <input type="file" id="image-input" accept="image/*" style="display: none;">
+                    <input type="file" id="image-input" accept="image/*" style="position:absolute; opacity:0; width:100%; height:100%; cursor:pointer; top:0; left:0;">
                     <img id="preview" style="display: none;">
                     <canvas id="masking-canvas" class="masking-canvas" style="display: none;"></canvas>
                     <div id="mask-instructions" class="mask-instructions">
@@ -815,57 +820,83 @@
             let originalImage = null;
             let processedAscii = null;
             
-            // File upload handling - make sure it works reliably
-            fileUpload.addEventListener('click', function(e) {
-                // Don't trigger file upload if we're in masking mode
-                if (isMaskingActive) {
-                    e.stopPropagation();
-                    return;
-                }
+            // File upload handling - completely revised for better reliability
+            function initFileUpload() {
+                const dropArea = document.getElementById('file-upload');
+                const fileInput = document.getElementById('image-input');
                 
-                // Ensure the click event properly triggers the file input
-                e.preventDefault();
-                setTimeout(() => {
-                    imageInput.click();
-                }, 0);
-            });
-            
-            fileUpload.addEventListener('dragover', function(e) {
-                e.preventDefault();
-                this.style.borderColor = '#3498db';
-                this.style.backgroundColor = '#f0f8ff';
-            });
-            
-            fileUpload.addEventListener('dragleave', function(e) {
-                e.preventDefault();
-                this.style.borderColor = '#3498db';
-                this.style.backgroundColor = 'transparent';
-            });
-            
-            // Add keyboard support for accessibility
-            fileUpload.addEventListener('keydown', function(e) {
-                // Trigger click on Enter or Space
-                if (e.key === 'Enter' || e.key === ' ') {
+                // Prevent default behaviors
+                ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                    dropArea.addEventListener(eventName, preventDefaults, false);
+                });
+                
+                function preventDefaults(e) {
                     e.preventDefault();
-                    imageInput.click();
+                    e.stopPropagation();
                 }
-            });
-            
-            fileUpload.addEventListener('drop', function(e) {
-                e.preventDefault();
-                this.style.borderColor = '#3498db';
-                this.style.backgroundColor = 'transparent';
                 
-                if (e.dataTransfer.files.length > 0) {
-                    handleFileUpload(e.dataTransfer.files[0]);
+                // Highlight drop area when item is dragged over it
+                ['dragenter', 'dragover'].forEach(eventName => {
+                    dropArea.addEventListener(eventName, highlight, false);
+                });
+                
+                ['dragleave', 'drop'].forEach(eventName => {
+                    dropArea.addEventListener(eventName, unhighlight, false);
+                });
+                
+                function highlight() {
+                    dropArea.style.borderColor = '#2980b9';
+                    dropArea.style.backgroundColor = 'rgba(52, 152, 219, 0.1)';
                 }
-            });
+                
+                function unhighlight() {
+                    dropArea.style.borderColor = '#3498db';
+                    dropArea.style.backgroundColor = 'rgba(52, 152, 219, 0.05)';
+                }
+                
+                // Handle dropped files
+                dropArea.addEventListener('drop', handleDrop, false);
+                
+                function handleDrop(e) {
+                    const dt = e.dataTransfer;
+                    const files = dt.files;
+                    
+                    if (files.length > 0) {
+                        handleFileUpload(files[0]);
+                    }
+                }
+                
+                // Handle click on the drop area
+                dropArea.addEventListener('click', function(e) {
+                    if (isMaskingActive) {
+                        e.stopPropagation();
+                        return;
+                    }
+                    
+                    // Don't trigger if we clicked on the file input itself
+                    if (e.target !== fileInput) {
+                        fileInput.click();
+                    }
+                });
+                
+                // Handle keyboard events for accessibility
+                dropArea.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        fileInput.click();
+                    }
+                });
+                
+                // Handle file selection
+                fileInput.addEventListener('change', function() {
+                    if (this.files.length > 0) {
+                        handleFileUpload(this.files[0]);
+                    }
+                });
+            }
             
-            imageInput.addEventListener('change', function() {
-                if (this.files.length > 0) {
-                    handleFileUpload(this.files[0]);
-                }
-            });
+            // Initialize file upload functionality
+            initFileUpload();
             
             function handleFileUpload(file) {
                 if (!file.type.match('image.*')) {
