@@ -14,12 +14,6 @@
             color: #333;
         }
         
-        h1 {
-            text-align: center;
-            color: #2c3e50;
-            margin-bottom: 30px;
-        }
-        
         .container {
             display: flex;
             flex-direction: column;
@@ -69,15 +63,9 @@
             color: #3498db;
         }
         
-        .file-upload:hover {
-            border-color: #2980b9;
-            background-color: #f0f8ff;
-        }
-        
         .file-upload img {
             max-width: 100%;
             max-height: 100%;
-            margin-top: 15px;
             border-radius: 4px;
         }
         
@@ -745,6 +733,7 @@
         </div>
     </div>
 
+    <!-- Start of JavaScript - continued in Part 2 -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // DOM elements
@@ -897,7 +886,7 @@
             
             // Initialize file upload functionality
             initFileUpload();
-            
+
             function handleFileUpload(file) {
                 if (!file.type.match('image.*')) {
                     alert('Please select an image file.');
@@ -908,6 +897,13 @@
                 reader.onload = function(e) {
                     preview.src = e.target.result;
                     preview.style.display = 'block';
+                    
+                    // Hide the upload icon and text when image is displayed
+                    const uploadIcon = fileUpload.querySelector('svg');
+                    const uploadText = fileUpload.querySelector('p');
+                    if (uploadIcon) uploadIcon.style.display = 'none';
+                    if (uploadText) uploadText.style.display = 'none';
+                    
                     loadImage(e.target.result);
                     
                     // Clear any existing mask
@@ -1744,3 +1740,537 @@
                             if (shouldBeBold) {
                                 asciiHtml += `<span style="color: ${color}; opacity: ${opacity}; font-weight: bold;">${char}</span>`;
                             } else {
+                                asciiHtml += `<span style="color: ${color}; opacity: ${opacity};">${char}</span>`;
+                            }
+                        }
+                    }
+                    asciiText += '\n';
+                    asciiHtml += '<br>';
+                }
+                
+                return {
+                    text: asciiText,
+                    html: asciiHtml
+                };
+            }
+            
+            // Function to convert image to ASCII with masking
+            function convertToAsciiWithMask(img, charset, resolution, contrast, brightness, mode, bgColorMode, fgColorMode, aspectRatio, mask, useBold = false) {
+                // Create canvas for image processing
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                // Calculate dimensions
+                let width, height;
+                const maxWidth = resolution;
+                const origAspectRatio = img.width / img.height;
+                
+                if (origAspectRatio > 1) {
+                    width = maxWidth;
+                    height = Math.floor(width / origAspectRatio / aspectRatio);
+                } else {
+                    height = Math.floor(maxWidth / aspectRatio);
+                    width = Math.floor(height * origAspectRatio);
+                }
+                
+                canvas.width = width;
+                canvas.height = height;
+                
+                // Draw image with adjustments
+                ctx.drawImage(img, 0, 0, width, height);
+                
+                // Apply contrast and brightness
+                const imageData = ctx.getImageData(0, 0, width, height);
+                const pixels = imageData.data;
+                
+                for (let i = 0; i < pixels.length; i += 4) {
+                    // Apply brightness
+                    pixels[i] = Math.min(255, pixels[i] * brightness);
+                    pixels[i + 1] = Math.min(255, pixels[i + 1] * brightness);
+                    pixels[i + 2] = Math.min(255, pixels[i + 2] * brightness);
+                    
+                    // Apply contrast
+                    const factor = (259 * (contrast + 255)) / (255 * (259 - contrast));
+                    pixels[i] = factor * (pixels[i] - 128) + 128;
+                    pixels[i + 1] = factor * (pixels[i + 1] - 128) + 128;
+                    pixels[i + 2] = factor * (pixels[i + 2] - 128) + 128;
+                }
+                
+                ctx.putImageData(imageData, 0, 0);
+                
+                // Create ASCII output
+                let asciiHtml = '';
+                
+                // Create a temporary canvas to scale the mask
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = width;
+                tempCanvas.height = height;
+                const tempCtx = tempCanvas.getContext('2d');
+                
+                // Scale the mask to match the ASCII resolution
+                if (mask) {
+                    tempCtx.drawImage(mask, 0, 0, width, height);
+                }
+                
+                // Get the scaled mask data
+                const maskImageData = tempCtx.getImageData(0, 0, width, height);
+                
+                // Determine base color modes (without -inverted)
+                const baseBgColorMode = bgColorMode.replace('-inverted', '');
+                const baseFgColorMode = fgColorMode.replace('-inverted', '');
+                
+                // Check if we need to invert the charset for foreground
+                let fgCharset = charset;
+                if (fgColorMode.includes('-inverted')) {
+                    fgCharset = charset.split('').reverse().join('');
+                }
+                
+                for (let y = 0; y < height; y++) {
+                    for (let x = 0; x < width; x++) {
+                        const pixelData = ctx.getImageData(x, y, 1, 1).data;
+                        const r = pixelData[0];
+                        const g = pixelData[1];
+                        const b = pixelData[2];
+                        
+                        // Calculate pixel brightness (weighted RGB)
+                        let brightness;
+                        if (mode === 'detailed' || mode === 'realistic') {
+                            // More weight to green for better detail perception
+                            brightness = 0.299 * r + 0.587 * g + 0.114 * b;
+                        } else {
+                            // Standard brightness calculation
+                            brightness = (r + g + b) / 3;
+                        }
+                        
+                        // Check if pixel is inside the mask by checking the alpha value
+                        // The index in the mask image data array
+                        const index = (y * width + x) * 4 + 3; // +3 for alpha channel
+                        const isInMask = mask && maskImageData.data[index] > 100; // Alpha threshold
+                        
+                        // Choose appropriate color mode and charset based on mask
+                        const colorMode = isInMask ? baseFgColorMode : baseBgColorMode;
+                        const charsetToUse = isInMask ? fgCharset : charset;
+                        
+                        // Map brightness to character
+                        let charIndex;
+                        const len = charsetToUse.length - 1;
+                        if (mode === 'stylized') {
+                            // Non-linear mapping for stylized effect
+                            charIndex = Math.floor((Math.pow(brightness / 255, 1.5)) * len);
+                        } else if (mode === 'realistic') {
+                            // Enhance mid-tones for more realistic representation
+                            const adjusted = brightness / 255;
+                            const enhanced = adjusted < 0.5 
+                                ? 0.5 * Math.pow(adjusted * 2, 0.8)
+                                : 0.5 + 0.5 * Math.pow((adjusted - 0.5) * 2, 1.2);
+                            charIndex = Math.floor(enhanced * len);
+                        } else {
+                            // Linear mapping for classic mode
+                            charIndex = Math.floor((brightness / 255) * len);
+                        }
+                        
+                        const char = charsetToUse[charIndex];
+                        
+                        // Determine if character should be bold
+                        const shouldBeBold = useBold && brightness > 128;
+                        
+                        // Apply appropriate color mode based on whether pixel is in foreground or background
+                        if (colorMode === 'none') {
+                            if (shouldBeBold) {
+                                asciiHtml += `<strong>${char}</strong>`;
+                            } else {
+                                asciiHtml += char;
+                            }
+                        } else if (colorMode === 'original') {
+                            if (shouldBeBold) {
+                                asciiHtml += `<span style="color: rgb(${r}, ${g}, ${b}); font-weight: bold;">${char}</span>`;
+                            } else {
+                                asciiHtml += `<span style="color: rgb(${r}, ${g}, ${b});">${char}</span>`;
+                            }
+                        } else if (colorMode === 'custom') {
+                            // Select appropriate custom color input based on whether in foreground or background
+                            const colorInput = isInMask ? foregroundCustomColorInput : customColorInput;
+                            const color = colorInput.value;
+                            const opacity = brightness / 255;
+                            
+                            if (shouldBeBold) {
+                                asciiHtml += `<span style="color: ${color}; opacity: ${opacity}; font-weight: bold;">${char}</span>`;
+                            } else {
+                                asciiHtml += `<span style="color: ${color}; opacity: ${opacity};">${char}</span>`;
+                            }
+                        } else if (colorMode === 'gradient') {
+                            // Select appropriate gradient inputs based on whether in foreground or background
+                            const startInput = isInMask ? 
+                                document.getElementById('foreground-gradient-start') : 
+                                document.getElementById('gradient-start');
+                            
+                            const endInput = isInMask ? 
+                                document.getElementById('foreground-gradient-end') : 
+                                document.getElementById('gradient-end');
+                            
+                            const startColor = hexToRgb(startInput.value);
+                            const endColor = hexToRgb(endInput.value);
+                            const ratio = brightness / 255;
+                            
+                            const r = Math.floor(startColor.r + ratio * (endColor.r - startColor.r));
+                            const g = Math.floor(startColor.g + ratio * (endColor.g - startColor.g));
+                            const b = Math.floor(startColor.b + ratio * (endColor.b - startColor.b));
+                            
+                            if (shouldBeBold) {
+                                asciiHtml += `<span style="color: rgb(${r}, ${g}, ${b}); font-weight: bold;">${char}</span>`;
+                            } else {
+                                asciiHtml += `<span style="color: rgb(${r}, ${g}, ${b});">${char}</span>`;
+                            }
+                        } else if (colorMode === 'riso') {
+                            // Select appropriate RISO color input based on whether in foreground or background
+                            const risoInput = isInMask ? 
+                                document.getElementById('foreground-riso-color') : 
+                                document.getElementById('riso-color');
+                            
+                            const risoColor = risoInput.value;
+                            const opacity = brightness / 255;
+                            
+                            if (shouldBeBold) {
+                                asciiHtml += `<span style="color: ${risoColor}; opacity: ${opacity}; font-weight: bold;">${char}</span>`;
+                            } else {
+                                asciiHtml += `<span style="color: ${risoColor}; opacity: ${opacity};">${char}</span>`;
+                            }
+                        } else if (colorMode === 'mixed-riso') {
+                            // Select appropriate mixed RISO settings based on whether in foreground or background
+                            const color1Input = isInMask ? 
+                                document.getElementById('foreground-riso-color1') : 
+                                document.getElementById('riso-color1');
+                            
+                            const color2Input = isInMask ? 
+                                document.getElementById('foreground-riso-color2') : 
+                                document.getElementById('riso-color2');
+                            
+                            const thresholdInput = isInMask ? 
+                                document.getElementById('foreground-riso-threshold') : 
+                                document.getElementById('riso-threshold');
+                            
+                            const risoColor1 = color1Input.value;
+                            const risoColor2 = color2Input.value;
+                            const threshold = parseInt(thresholdInput.value);
+                            
+                            // Use primary color for darker tones and secondary for lighter
+                            const color = brightness < threshold ? risoColor1 : risoColor2;
+                            // Apply brightness-based opacity for halftone-like effect
+                            const opacity = brightness < threshold ? 
+                                (1 - brightness / threshold) * 0.8 + 0.2 : // Map 0-threshold to 1.0-0.2
+                                ((brightness - threshold) / (255 - threshold)) * 0.8 + 0.2; // Map threshold-255 to 1.0-0.2
+                            
+                            if (shouldBeBold) {
+                                asciiHtml += `<span style="color: ${color}; opacity: ${opacity}; font-weight: bold;">${char}</span>`;
+                            } else {
+                                asciiHtml += `<span style="color: ${color}; opacity: ${opacity};">${char}</span>`;
+                            }
+                        }
+                    }
+                    asciiHtml += '<br>';
+                }
+                
+                // Generate a text-only version for download purposes
+                let textOutput = '';
+                const div = document.createElement('div');
+                div.innerHTML = asciiHtml;
+                textOutput = div.textContent || div.innerText || '';
+                
+                // Return the masked ASCII art
+                return {
+                    html: asciiHtml,
+                    text: textOutput // Use the extracted text
+                };
+            }
+            
+            // Helper function to convert hex to RGB
+            function hexToRgb(hex) {
+                const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+                return result ? {
+                    r: parseInt(result[1], 16),
+                    g: parseInt(result[2], 16),
+                    b: parseInt(result[3], 16)
+                } : null;
+            }
+            
+            // Download functions
+            downloadTxtBtn.addEventListener('click', function() {
+                if (!processedAscii) {
+                    alert('Please convert an image to ASCII art first.');
+                    return;
+                }
+                
+                const blob = new Blob([processedAscii.text], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'ascii_art.txt';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            });
+            
+            downloadHtmlBtn.addEventListener('click', function() {
+                if (!processedAscii) {
+                    alert('Please convert an image to ASCII art first.');
+                    return;
+                }
+                
+                const style = `
+                    body {
+                        background-color: ${bgColorInput.value};
+                        font-family: monospace;
+                        line-height: ${lineHeightSlider.value};
+                        font-size: ${fontSizeSlider.value}px;
+                        letter-spacing: ${letterSpacingSlider.value}em;
+                        white-space: pre;
+                    }
+                `;
+                
+                const html = `
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <meta charset="UTF-8">
+                        <title>ASCII Art</title>
+                        <style>${style}</style>
+                    </head>
+                    <body>
+                        ${colorModeSelect.value.startsWith('none') && !maskModeSelect.value !== 'none' ? 
+                          `<div style="color: ${textColorInput.value};">${processedAscii.text.replace(/\n/g, '<br>')}</div>` : 
+                          processedAscii.html}
+                    </body>
+                    </html>
+                `;
+                
+                const blob = new Blob([html], { type: 'text/html' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'ascii_art.html';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            });
+            
+            // Download as PNG
+            downloadPngBtn.addEventListener('click', function() {
+                if (!processedAscii) {
+                    alert('Please convert an image to ASCII art first.');
+                    return;
+                }
+                
+                // Show a loading indicator
+                const loadingIndicator = document.createElement('div');
+                loadingIndicator.textContent = 'Generating PNG...';
+                loadingIndicator.style.position = 'absolute';
+                loadingIndicator.style.top = '50%';
+                loadingIndicator.style.left = '50%';
+                loadingIndicator.style.transform = 'translate(-50%, -50%)';
+                loadingIndicator.style.backgroundColor = 'rgba(0,0,0,0.7)';
+                loadingIndicator.style.color = 'white';
+                loadingIndicator.style.padding = '10px 20px';
+                loadingIndicator.style.borderRadius = '5px';
+                loadingIndicator.style.zIndex = '9999';
+                document.body.appendChild(loadingIndicator);
+                
+                // Alert the user about limitations of PNG export with colored ASCII
+                if (!colorModeSelect.value.startsWith('none') || maskModeSelect.value !== 'none') {
+                    alert('For best results with colored ASCII art, use the "Download as HTML" option which preserves all colors perfectly.');
+                }
+                
+                try {
+                    // Create a temporary container with the same styling as the output
+                    const container = document.createElement('div');
+                    container.style.backgroundColor = bgColorInput.value;
+                    container.style.fontFamily = 'monospace';
+                    container.style.whiteSpace = 'pre';
+                    container.style.lineHeight = lineHeightSlider.value;
+                    container.style.fontSize = fontSizeSlider.value + 'px';
+                    container.style.letterSpacing = letterSpacingSlider.value + 'em';
+                    container.style.padding = '15px';
+                    container.style.width = asciiOutput.offsetWidth + 'px';
+                    container.style.position = 'fixed';
+                    container.style.left = '-9999px';
+                    container.style.top = '-9999px';
+                    container.style.color = textColorInput.value;
+                    container.style.zIndex = '-1000';
+                    
+                    // Insert the ASCII content - use the actual visible output element content
+                    container.innerHTML = asciiOutput.innerHTML;
+                    
+                    document.body.appendChild(container);
+                    
+                    // Get the HTML content and create a new window with it
+                    const style = `
+                        body {
+                            background-color: ${bgColorInput.value};
+                            font-family: monospace;
+                            line-height: ${lineHeightSlider.value};
+                            font-size: ${fontSizeSlider.value}px;
+                            letter-spacing: ${letterSpacingSlider.value}em;
+                            white-space: pre;
+                            margin: 0;
+                            padding: 15px;
+                            color: ${textColorInput.value};
+                        }
+                        
+                        span {
+                            display: inline-block; 
+                        }
+                    `;
+                    
+                    const htmlContent = `
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                            <meta charset="UTF-8">
+                            <style>${style}</style>
+                        </head>
+                        <body>
+                            ${container.innerHTML}
+                        </body>
+                        </html>
+                    `;
+                    
+                    // Option 1: Try html2canvas if available
+                    if (typeof html2canvas === 'function') {
+                        html2canvas(container, {
+                            backgroundColor: bgColorInput.value,
+                            scale: 2, // Higher resolution
+                            logging: false
+                        }).then(canvas => {
+                            saveCanvas(canvas);
+                            cleanup();
+                        }).catch(err => {
+                            console.error('html2canvas error:', err);
+                            tryFallbackMethod();
+                        });
+                    } else {
+                        tryFallbackMethod();
+                    }
+                    
+                    function tryFallbackMethod() {
+                        try {
+                            // Create a data URL
+                            const iframe = document.createElement('iframe');
+                            iframe.style.width = container.offsetWidth + 'px';
+                            iframe.style.height = (container.offsetHeight + 50) + 'px'; // Add some extra space
+                            iframe.style.position = 'fixed';
+                            iframe.style.left = '-9999px';
+                            iframe.style.top = '-9999px';
+                            iframe.style.zIndex = '-1000';
+                            
+                            document.body.appendChild(iframe);
+                            
+                            const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                            iframeDoc.open();
+                            iframeDoc.write(htmlContent);
+                            iframeDoc.close();
+                            
+                            // Give it a moment to render
+                            setTimeout(() => {
+                                try {
+                                    // Take a screenshot using a canvas
+                                    const canvas = document.createElement('canvas');
+                                    const ctx = canvas.getContext('2d');
+                                    canvas.width = iframe.offsetWidth;
+                                    canvas.height = iframe.offsetHeight;
+                                    
+                                    // Draw background
+                                    ctx.fillStyle = bgColorInput.value;
+                                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                                    
+                                    // For browsers without iframe screenshot capability, 
+                                    // add a notice about HTML download
+                                    ctx.fillStyle = textColorInput.value;
+                                    ctx.font = fontSizeSlider.value + 'px monospace';
+                                    
+                                    // Draw each line of ASCII art text
+                                    const lines = processedAscii.text.split('\n');
+                                    const lineHeight = parseFloat(lineHeightSlider.value) * fontSizeSlider.value;
+                                    
+                                    for (let i = 0; i < lines.length; i++) {
+                                        ctx.fillText(lines[i], 15, 15 + (i * lineHeight));
+                                    }
+                                    
+                                    // Add notice about colors
+                                    ctx.fillStyle = 'rgba(0,0,0,0.7)';
+                                    ctx.fillRect(10, canvas.height - 40, canvas.width - 20, 30);
+                                    ctx.fillStyle = 'white';
+                                    ctx.font = '12px sans-serif';
+                                    ctx.fillText('Note: Download as HTML to preserve all colors perfectly', 20, canvas.height - 20);
+                                    
+                                    saveCanvas(canvas);
+                                    cleanup(iframe);
+                                } catch (e) {
+                                    console.error('Error creating canvas from iframe:', e);
+                                    showFallbackMessage();
+                                    cleanup(iframe);
+                                }
+                            }, 500);
+                        } catch (e) {
+                            console.error('Fallback method error:', e);
+                            showFallbackMessage();
+                            cleanup();
+                        }
+                    }
+                    
+                    function saveCanvas(canvas) {
+                        try {
+                            const dataURL = canvas.toDataURL('image/png');
+                            
+                            // Create download link
+                            const a = document.createElement('a');
+                            a.href = dataURL;
+                            a.download = 'ascii_art.png';
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+                        } catch (e) {
+                            console.error('Error saving canvas:', e);
+                            showFallbackMessage();
+                        }
+                    }
+                    
+                    function cleanup(extraElement) {
+                        try {
+                            document.body.removeChild(container);
+                            document.body.removeChild(loadingIndicator);
+                            if (extraElement) document.body.removeChild(extraElement);
+                        } catch (e) {
+                            console.error('Cleanup error:', e);
+                        }
+                    }
+                    
+                    function showFallbackMessage() {
+                        alert('Could not generate a colored PNG. For best results with all colors, please use the "Download as HTML" option instead.');
+                        cleanup();
+                    }
+                } catch (error) {
+                    console.error('Overall PNG generation error:', error);
+                    alert('Error generating PNG. Please use the HTML download option for best results with colors.');
+                    document.body.removeChild(loadingIndicator);
+                }
+            });
+            
+            // Initialize UI
+            window.addEventListener('resize', function() {
+                adjustMaskingCanvas();
+                resizeAsciiOutput();
+            });
+            
+            function resizeAsciiOutput() {
+                // Adjust font size based on container width
+                const containerWidth = document.querySelector('.output-section').offsetWidth;
+                const fontSize = Math.max(6, Math.min(16, containerWidth / 100));
+                if (window.innerWidth < 768) {
+                    asciiOutput.style.fontSize = fontSize + 'px';
+                }
+            }
+        });
+    </script>
+</body>
+</html>                      
