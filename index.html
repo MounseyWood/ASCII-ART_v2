@@ -1995,7 +1995,243 @@
                     b: parseInt(result[3], 16)
                 } : null;
             }
-            
+
+            // Export helper functions
+            const EXPORT_CONSTANTS = {
+                CANVAS_PADDING: 20,
+                CHAR_WIDTH_RATIO: 0.6,
+                GIF_QUALITY: 10,
+                GIF_WORKERS: 2
+            };
+
+            /**
+             * Creates a loading indicator overlay
+             * @param {string} message - Message to display
+             * @returns {HTMLElement} The loading indicator element
+             */
+            function createLoadingIndicator(message) {
+                const indicator = document.createElement('div');
+                indicator.textContent = message;
+                indicator.style.cssText = `
+                    position: fixed;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    background-color: rgba(0, 0, 0, 0.7);
+                    color: white;
+                    padding: 20px 40px;
+                    border-radius: 8px;
+                    z-index: 9999;
+                    font-size: 18px;
+                `;
+                document.body.appendChild(indicator);
+                return indicator;
+            }
+
+            /**
+             * Safely removes a loading indicator
+             * @param {HTMLElement} indicator - The indicator to remove
+             */
+            function removeLoadingIndicator(indicator) {
+                if (indicator && indicator.parentNode) {
+                    indicator.parentNode.removeChild(indicator);
+                }
+            }
+
+            /**
+             * Triggers a file download
+             * @param {string} url - The URL or data URL to download
+             * @param {string} filename - The filename for the download
+             */
+            function downloadFile(url, filename) {
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = filename;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                if (url.startsWith('blob:')) {
+                    URL.revokeObjectURL(url);
+                }
+            }
+
+            /**
+             * Gets the current rendering configuration
+             * @returns {Object} Configuration object with font, color, and dimension settings
+             */
+            function getCanvasRenderingConfig() {
+                const fontSize = parseInt(fontSizeSlider.value);
+                const lineHeight = parseFloat(lineHeightSlider.value);
+                const letterSpacing = parseFloat(letterSpacingSlider.value);
+                const hasColors = !colorModeSelect.value.startsWith('none') || maskModeSelect.value !== 'none';
+
+                return {
+                    fontSize,
+                    lineHeight,
+                    letterSpacing,
+                    hasColors,
+                    bgColor: bgColorInput.value,
+                    textColor: textColorInput.value,
+                    charWidth: fontSize * EXPORT_CONSTANTS.CHAR_WIDTH_RATIO,
+                    charHeight: fontSize * lineHeight
+                };
+            }
+
+            /**
+             * Calculates canvas dimensions based on ASCII content
+             * @param {Object} config - Rendering configuration
+             * @returns {Object} Width and height for the canvas
+             */
+            function calculateCanvasDimensions(config) {
+                const lines = processedAscii.text.split('\n');
+                const maxLineLength = Math.max(...lines.map(line => line.length));
+
+                const width = Math.ceil(
+                    maxLineLength * config.charWidth * (1 + config.letterSpacing)
+                ) + (EXPORT_CONSTANTS.CANVAS_PADDING * 2);
+
+                const height = Math.ceil(
+                    lines.length * config.charHeight
+                ) + (EXPORT_CONSTANTS.CANVAS_PADDING * 2);
+
+                return { width, height, lines };
+            }
+
+            /**
+             * Renders ASCII art to canvas with color support
+             * @param {CanvasRenderingContext2D} ctx - Canvas context
+             * @param {Object} config - Rendering configuration
+             * @param {Array} lines - Lines of ASCII text
+             */
+            function renderColoredAsciiToCanvas(ctx, config, lines) {
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = processedAscii.html;
+
+                let y = EXPORT_CONSTANTS.CANVAS_PADDING;
+                const htmlLines = tempDiv.querySelectorAll('div');
+
+                if (htmlLines.length > 0) {
+                    htmlLines.forEach(div => {
+                        let x = EXPORT_CONSTANTS.CANVAS_PADDING;
+                        const spans = div.querySelectorAll('span');
+
+                        if (spans.length > 0) {
+                            spans.forEach(span => {
+                                const text = span.textContent;
+                                const color = span.style.color || config.textColor;
+                                ctx.fillStyle = color;
+                                ctx.fillText(text, x, y);
+                                x += text.length * config.charWidth * (1 + config.letterSpacing);
+                            });
+                        } else {
+                            ctx.fillStyle = config.textColor;
+                            ctx.fillText(div.textContent, x, y);
+                        }
+                        y += config.charHeight;
+                    });
+                } else {
+                    // Fallback to monochrome if HTML parsing fails
+                    renderMonochromeAsciiToCanvas(ctx, config, lines);
+                }
+            }
+
+            /**
+             * Renders plain monochrome ASCII art to canvas
+             * @param {CanvasRenderingContext2D} ctx - Canvas context
+             * @param {Object} config - Rendering configuration
+             * @param {Array} lines - Lines of ASCII text
+             */
+            function renderMonochromeAsciiToCanvas(ctx, config, lines) {
+                ctx.fillStyle = config.textColor;
+                lines.forEach((line, i) => {
+                    ctx.fillText(
+                        line,
+                        EXPORT_CONSTANTS.CANVAS_PADDING,
+                        EXPORT_CONSTANTS.CANVAS_PADDING + i * config.charHeight
+                    );
+                });
+            }
+
+            /**
+             * Creates a canvas with rendered ASCII art
+             * @returns {HTMLCanvasElement} Canvas with rendered ASCII
+             */
+            function createAsciiCanvas() {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+
+                // Get rendering configuration
+                const config = getCanvasRenderingConfig();
+                const dimensions = calculateCanvasDimensions(config);
+
+                // Set canvas size
+                canvas.width = dimensions.width;
+                canvas.height = dimensions.height;
+
+                // Fill background
+                ctx.fillStyle = config.bgColor;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                // Set text properties
+                ctx.font = `${config.fontSize}px monospace`;
+                ctx.textBaseline = 'top';
+
+                // Render ASCII art
+                if (config.hasColors && processedAscii.html) {
+                    renderColoredAsciiToCanvas(ctx, config, dimensions.lines);
+                } else {
+                    renderMonochromeAsciiToCanvas(ctx, config, dimensions.lines);
+                }
+
+                return canvas;
+            }
+
+            /**
+             * Exports canvas as GIF using gif.js library
+             * @param {HTMLCanvasElement} canvas - Canvas to export
+             * @param {HTMLElement} loadingIndicator - Loading indicator to remove on completion
+             */
+            function exportCanvasAsGif(canvas, loadingIndicator) {
+                if (typeof GIF === 'undefined') {
+                    // Fallback to PNG if gif.js is not loaded
+                    console.warn('gif.js library not loaded, falling back to PNG');
+                    const dataURL = canvas.toDataURL('image/png');
+                    downloadFile(dataURL, 'ascii_art.png');
+                    removeLoadingIndicator(loadingIndicator);
+                    alert('GIF encoding library not available. Downloaded as PNG instead.');
+                    return;
+                }
+
+                // Initialize GIF encoder
+                const gif = new GIF({
+                    workers: EXPORT_CONSTANTS.GIF_WORKERS,
+                    quality: EXPORT_CONSTANTS.GIF_QUALITY,
+                    width: canvas.width,
+                    height: canvas.height,
+                    workerScript: 'https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.worker.js'
+                });
+
+                // Add the canvas as a single frame
+                gif.addFrame(canvas, { delay: 0 });
+
+                // Handle successful encoding
+                gif.on('finished', function(blob) {
+                    const url = URL.createObjectURL(blob);
+                    downloadFile(url, 'ascii_art.gif');
+                    removeLoadingIndicator(loadingIndicator);
+                });
+
+                // Handle encoding errors
+                gif.on('error', function(error) {
+                    console.error('GIF encoding error:', error);
+                    removeLoadingIndicator(loadingIndicator);
+                    alert('Error encoding GIF. Please try again or use PNG export.');
+                });
+
+                // Start encoding
+                gif.render();
+            }
+
             // Download functions
             downloadTxtBtn.addEventListener('click', function() {
                 if (!processedAscii) {
@@ -2261,142 +2497,25 @@
 
             // Download as GIF
             downloadGifBtn.addEventListener('click', function() {
+                // Validate ASCII art is available
                 if (!processedAscii) {
                     alert('Please convert an image to ASCII art first.');
                     return;
                 }
 
-                // Show a loading indicator
-                const loadingIndicator = document.createElement('div');
-                loadingIndicator.textContent = 'Generating GIF...';
-                loadingIndicator.style.position = 'fixed';
-                loadingIndicator.style.top = '50%';
-                loadingIndicator.style.left = '50%';
-                loadingIndicator.style.transform = 'translate(-50%, -50%)';
-                loadingIndicator.style.backgroundColor = 'rgba(0,0,0,0.7)';
-                loadingIndicator.style.color = 'white';
-                loadingIndicator.style.padding = '20px 40px';
-                loadingIndicator.style.borderRadius = '8px';
-                loadingIndicator.style.zIndex = '9999';
-                loadingIndicator.style.fontSize = '18px';
-                document.body.appendChild(loadingIndicator);
+                // Show loading indicator
+                const loadingIndicator = createLoadingIndicator('Generating GIF...');
 
                 try {
-                    // Create a canvas to render the ASCII art
-                    const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
+                    // Create canvas with rendered ASCII art
+                    const canvas = createAsciiCanvas();
 
-                    // Set canvas properties
-                    const fontSize = parseInt(fontSizeSlider.value);
-                    const lineHeight = parseFloat(lineHeightSlider.value);
-                    const letterSpacing = parseFloat(letterSpacingSlider.value);
-
-                    // Calculate canvas dimensions
-                    const lines = processedAscii.text.split('\n');
-                    const maxLineLength = Math.max(...lines.map(line => line.length));
-
-                    const charWidth = fontSize * 0.6; // Approximate monospace character width
-                    const charHeight = fontSize * lineHeight;
-
-                    canvas.width = Math.ceil(maxLineLength * charWidth * (1 + letterSpacing)) + 40;
-                    canvas.height = Math.ceil(lines.length * charHeight) + 40;
-
-                    // Fill background
-                    ctx.fillStyle = bgColorInput.value;
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-                    // Set text properties
-                    ctx.font = fontSize + 'px monospace';
-                    ctx.textBaseline = 'top';
-
-                    // Check if we have colored ASCII
-                    const hasColors = !colorModeSelect.value.startsWith('none') || maskModeSelect.value !== 'none';
-
-                    if (hasColors && processedAscii.html) {
-                        // Parse HTML and render with colors
-                        const tempDiv = document.createElement('div');
-                        tempDiv.innerHTML = processedAscii.html;
-
-                        let y = 20;
-                        const htmlLines = tempDiv.querySelectorAll('div');
-
-                        if (htmlLines.length > 0) {
-                            htmlLines.forEach(div => {
-                                let x = 20;
-                                const spans = div.querySelectorAll('span');
-
-                                if (spans.length > 0) {
-                                    spans.forEach(span => {
-                                        const text = span.textContent;
-                                        const color = span.style.color || textColorInput.value;
-                                        ctx.fillStyle = color;
-                                        ctx.fillText(text, x, y);
-                                        x += text.length * charWidth * (1 + letterSpacing);
-                                    });
-                                } else {
-                                    ctx.fillStyle = textColorInput.value;
-                                    ctx.fillText(div.textContent, x, y);
-                                }
-                                y += charHeight;
-                            });
-                        } else {
-                            // Fallback to plain text rendering
-                            ctx.fillStyle = textColorInput.value;
-                            lines.forEach((line, i) => {
-                                ctx.fillText(line, 20, 20 + i * charHeight);
-                            });
-                        }
-                    } else {
-                        // Simple monochrome rendering
-                        ctx.fillStyle = textColorInput.value;
-                        lines.forEach((line, i) => {
-                            ctx.fillText(line, 20, 20 + i * charHeight);
-                        });
-                    }
-
-                    // Convert canvas to GIF using gif.js library
-                    if (typeof GIF !== 'undefined') {
-                        // Use gif.js for proper GIF encoding
-                        const gif = new GIF({
-                            workers: 2,
-                            quality: 10,
-                            width: canvas.width,
-                            height: canvas.height,
-                            workerScript: 'https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.worker.js'
-                        });
-
-                        gif.addFrame(canvas, {delay: 0});
-
-                        gif.on('finished', function(blob) {
-                            const url = URL.createObjectURL(blob);
-                            const a = document.createElement('a');
-                            a.href = url;
-                            a.download = 'ascii_art.gif';
-                            document.body.appendChild(a);
-                            a.click();
-                            document.body.removeChild(a);
-                            URL.revokeObjectURL(url);
-                            document.body.removeChild(loadingIndicator);
-                        });
-
-                        gif.render();
-                    } else {
-                        // Fallback to PNG if gif.js is not loaded
-                        console.warn('gif.js library not loaded, falling back to PNG');
-                        const dataURL = canvas.toDataURL('image/png');
-                        const a = document.createElement('a');
-                        a.href = dataURL;
-                        a.download = 'ascii_art.png';
-                        document.body.appendChild(a);
-                        a.click();
-                        document.body.removeChild(a);
-                        document.body.removeChild(loadingIndicator);
-                        alert('GIF encoding library not available. Downloaded as PNG instead.');
-                    }
+                    // Export as GIF
+                    exportCanvasAsGif(canvas, loadingIndicator);
                 } catch (error) {
                     console.error('Error generating GIF:', error);
+                    removeLoadingIndicator(loadingIndicator);
                     alert('Error generating GIF: ' + error.message);
-                    document.body.removeChild(loadingIndicator);
                 }
             });
 
