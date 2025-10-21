@@ -736,6 +736,7 @@
 
     <!-- Start of JavaScript - continued in Part 2 -->
     <script src="https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/omggif@1.0.10/omggif.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // ============================================================================
@@ -773,6 +774,11 @@
                 CHAR_WIDTH_RATIO: 0.6,
                 GIF_QUALITY: 10,
                 GIF_WORKERS: 2,
+
+                // Animated GIF settings
+                MAX_GIF_FRAMES: 200, // Limit for performance
+                DEFAULT_GIF_DELAY: 100, // Default delay in ms if not specified
+                MIN_GIF_DELAY: 20, // Minimum delay to prevent too-fast animations
 
                 // File handling
                 MAX_FILE_SIZE: 10 * 1024 * 1024, // 10MB
@@ -950,7 +956,12 @@
                 isDrawing: false,
                 lastX: 0,
                 lastY: 0,
-                brushSize: CONFIG.DEFAULT_BRUSH_SIZE
+                brushSize: CONFIG.DEFAULT_BRUSH_SIZE,
+                // Animated GIF support
+                isAnimatedGif: false,
+                gifFrames: [], // Array of {imageData, delay} objects
+                currentFrameIndex: 0,
+                animationInterval: null
             };
 
             // Masking context
@@ -1037,6 +1048,113 @@
                 }
 
                 return true;
+            }
+
+            /**
+             * Parses an animated GIF and extracts all frames with timing
+             * @param {ArrayBuffer} arrayBuffer - GIF file as ArrayBuffer
+             * @returns {Promise<Array>} Array of {imageData, delay, canvas} objects
+             */
+            async function parseAnimatedGif(arrayBuffer) {
+                return new Promise((resolve, reject) => {
+                    try {
+                        // Check if omggif library is loaded
+                        if (typeof GifReader === 'undefined') {
+                            reject(new Error('GIF parsing library not loaded'));
+                            return;
+                        }
+
+                        const uint8Array = new Uint8Array(arrayBuffer);
+                        const reader = new GifReader(uint8Array);
+
+                        const numFrames = reader.numFrames();
+                        const width = reader.width;
+                        const height = reader.height;
+
+                        console.log(`Parsing GIF: ${width}x${height}, ${numFrames} frames`);
+
+                        // Limit frames for performance
+                        const framesToExtract = Math.min(numFrames, CONFIG.MAX_GIF_FRAMES);
+                        if (numFrames > CONFIG.MAX_GIF_FRAMES) {
+                            console.warn(`GIF has ${numFrames} frames, limiting to ${CONFIG.MAX_GIF_FRAMES}`);
+                        }
+
+                        const frames = [];
+
+                        // Create a temporary canvas for frame extraction
+                        const tempCanvas = document.createElement('canvas');
+                        tempCanvas.width = width;
+                        tempCanvas.height = height;
+                        const tempCtx = tempCanvas.getContext('2d');
+
+                        // Extract each frame
+                        for (let i = 0; i < framesToExtract; i++) {
+                            const frameInfo = reader.frameInfo(i);
+                            const pixels = new Uint8Array(width * height * 4);
+                            reader.decodeAndBlitFrameRGBA(i, pixels);
+
+                            // Create ImageData from pixels
+                            const imageData = new ImageData(new Uint8ClampedArray(pixels), width, height);
+
+                            // Put on temporary canvas
+                            tempCtx.putImageData(imageData, 0, 0);
+
+                            // Create an Image from the canvas
+                            const frameCanvas = document.createElement('canvas');
+                            frameCanvas.width = width;
+                            frameCanvas.height = height;
+                            const frameCtx = frameCanvas.getContext('2d');
+                            frameCtx.putImageData(imageData, 0, 0);
+
+                            // Get delay (in centiseconds, convert to ms)
+                            const delay = Math.max(
+                                (frameInfo.delay || 10) * 10, // Convert centiseconds to ms
+                                CONFIG.MIN_GIF_DELAY
+                            );
+
+                            frames.push({
+                                imageData: imageData,
+                                canvas: frameCanvas,
+                                delay: delay,
+                                width: width,
+                                height: height
+                            });
+                        }
+
+                        console.log(`Successfully extracted ${frames.length} frames`);
+                        resolve(frames);
+
+                    } catch (error) {
+                        console.error('Error parsing GIF:', error);
+                        reject(error);
+                    }
+                });
+            }
+
+            /**
+             * Checks if a file is an animated GIF
+             * @param {File} file - File to check
+             * @returns {Promise<boolean>} True if animated GIF
+             */
+            async function isAnimatedGif(file) {
+                if (file.type !== 'image/gif') {
+                    return false;
+                }
+
+                try {
+                    const arrayBuffer = await file.arrayBuffer();
+                    const uint8Array = new Uint8Array(arrayBuffer);
+
+                    if (typeof GifReader === 'undefined') {
+                        return false;
+                    }
+
+                    const reader = new GifReader(uint8Array);
+                    return reader.numFrames() > 1;
+                } catch (error) {
+                    console.error('Error checking if GIF is animated:', error);
+                    return false;
+                }
             }
 
             // ============================================================================
@@ -1127,29 +1245,92 @@
              * Handles file upload and previews the image
              * @param {File} file - Image file to upload
              */
-            function handleFileUpload(file) {
+            async function handleFileUpload(file) {
                 // Validate file before processing
                 if (!validateFile(file)) {
                     return;
                 }
 
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    preview.src = e.target.result;
-                    preview.style.display = 'block';
-                    
-                    // Hide the upload icon and text when image is displayed
-                    const uploadIcon = fileUpload.querySelector('svg');
-                    const uploadText = fileUpload.querySelector('p');
-                    if (uploadIcon) uploadIcon.style.display = 'none';
-                    if (uploadText) uploadText.style.display = 'none';
-                    
-                    loadImage(e.target.result);
-                    
-                    // Clear any existing mask
-                    clearMask();
-                };
-                reader.readAsDataURL(file);
+                // Check if it's an animated GIF
+                const isAnimated = await isAnimatedGif(file);
+
+                if (isAnimated) {
+                    // Handle animated GIF
+                    console.log('Detected animated GIF');
+                    const loadingIndicator = createLoadingIndicator('Parsing animated GIF...');
+
+                    try {
+                        const arrayBuffer = await file.arrayBuffer();
+                        const frames = await parseAnimatedGif(arrayBuffer);
+
+                        // Store frames in state
+                        state.isAnimatedGif = true;
+                        state.gifFrames = frames;
+                        state.currentFrameIndex = 0;
+
+                        // Show first frame in preview
+                        const firstFrameDataUrl = frames[0].canvas.toDataURL();
+                        preview.src = firstFrameDataUrl;
+                        preview.style.display = 'block';
+
+                        // Hide the upload icon and text
+                        const uploadIcon = fileUpload.querySelector('svg');
+                        const uploadText = fileUpload.querySelector('p');
+                        if (uploadIcon) uploadIcon.style.display = 'none';
+                        if (uploadText) uploadText.style.display = 'none';
+
+                        loadingIndicator.remove();
+
+                        // Load first frame
+                        loadImage(firstFrameDataUrl);
+
+                        alert(`Animated GIF detected! ${frames.length} frames loaded. Click "Download as GIF" to export animated ASCII art.`);
+
+                    } catch (error) {
+                        console.error('Error parsing animated GIF:', error);
+                        loadingIndicator.remove();
+                        alert('Error parsing animated GIF. Treating as static image.');
+                        state.isAnimatedGif = false;
+
+                        // Fall back to static image
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            preview.src = e.target.result;
+                            preview.style.display = 'block';
+
+                            const uploadIcon = fileUpload.querySelector('svg');
+                            const uploadText = fileUpload.querySelector('p');
+                            if (uploadIcon) uploadIcon.style.display = 'none';
+                            if (uploadText) uploadText.style.display = 'none';
+
+                            loadImage(e.target.result);
+                            clearMask();
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                } else {
+                    // Handle static image as before
+                    state.isAnimatedGif = false;
+                    state.gifFrames = [];
+
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        preview.src = e.target.result;
+                        preview.style.display = 'block';
+
+                        // Hide the upload icon and text when image is displayed
+                        const uploadIcon = fileUpload.querySelector('svg');
+                        const uploadText = fileUpload.querySelector('p');
+                        if (uploadIcon) uploadIcon.style.display = 'none';
+                        if (uploadText) uploadText.style.display = 'none';
+
+                        loadImage(e.target.result);
+
+                        // Clear any existing mask
+                        clearMask();
+                    };
+                    reader.readAsDataURL(file);
+                }
             }
             
             /**
@@ -2461,11 +2642,172 @@
             }
 
             /**
-             * Exports canvas as GIF using gif.js library
-             * @param {HTMLCanvasElement} canvas - Canvas to export
+             * Applies contrast and brightness adjustments to ImageData
+             * @param {ImageData} imageData - Image data to adjust
+             * @param {number} contrast - Contrast value (0-200, 100 is normal)
+             * @param {number} brightness - Brightness value (0-200, 100 is normal)
+             */
+            function adjustImageData(imageData, contrast, brightness) {
+                const pixels = imageData.data;
+                const brightnessMultiplier = brightness / 100;
+                const contrastFactor = (259 * (contrast / 100 * 255 + 255)) / (255 * (259 - contrast / 100 * 255));
+
+                for (let i = 0; i < pixels.length; i += 4) {
+                    // Apply brightness
+                    pixels[i] = Math.min(255, pixels[i] * brightnessMultiplier);
+                    pixels[i + 1] = Math.min(255, pixels[i + 1] * brightnessMultiplier);
+                    pixels[i + 2] = Math.min(255, pixels[i + 2] * brightnessMultiplier);
+
+                    // Apply contrast
+                    pixels[i] = Math.max(0, Math.min(255, contrastFactor * (pixels[i] - 128) + 128));
+                    pixels[i + 1] = Math.max(0, Math.min(255, contrastFactor * (pixels[i + 1] - 128) + 128));
+                    pixels[i + 2] = Math.max(0, Math.min(255, contrastFactor * (pixels[i + 2] - 128) + 128));
+                }
+            }
+
+            /**
+             * Converts a single image/canvas to ASCII and renders to canvas
+             * @param {HTMLImageElement|HTMLCanvasElement} image - Image or canvas to convert
+             * @returns {HTMLCanvasElement} Canvas with ASCII art rendered
+             */
+            function convertImageToAsciiCanvas(image) {
+                // Create temporary canvas for processing
+                const tempCanvas = document.createElement('canvas');
+                const tempCtx = tempCanvas.getContext('2d');
+
+                // Use the image dimensions
+                let width, height;
+                if (image instanceof HTMLCanvasElement) {
+                    width = image.width;
+                    height = image.height;
+                } else {
+                    width = image.naturalWidth || image.width;
+                    height = image.naturalHeight || image.height;
+                }
+
+                // Apply resolution scaling
+                const resolution = parseInt(resolutionSlider.value);
+                const scale = resolution / Math.max(width, height);
+                const scaledWidth = Math.round(width * scale);
+                const scaledHeight = Math.round(height * scale);
+
+                tempCanvas.width = scaledWidth;
+                tempCanvas.height = scaledHeight;
+                tempCtx.drawImage(image, 0, 0, scaledWidth, scaledHeight);
+
+                // Get image data
+                const imageData = tempCtx.getImageData(0, 0, scaledWidth, scaledHeight);
+
+                // Apply contrast and brightness
+                const contrast = parseFloat(contrastSlider.value);
+                const brightness = parseFloat(brightnessSlider.value);
+                adjustImageData(imageData, contrast, brightness);
+
+                // Convert to ASCII
+                const asciiData = convertImageDataToAscii(imageData);
+
+                // Render ASCII to canvas
+                return renderAsciiDataToCanvas(asciiData);
+            }
+
+            /**
+             * Converts ImageData to ASCII art data structure
+             * @param {ImageData} imageData - Image data to convert
+             * @returns {Object} ASCII data with text and HTML
+             */
+            function convertImageDataToAscii(imageData) {
+                const data = imageData.data;
+                const width = imageData.width;
+                const height = imageData.height;
+
+                // Get current settings
+                const charsetType = charsetSelect.value;
+                const charset = charsetType === 'custom' ? customCharsetInput.value : CHARSETS[charsetType];
+                const invert = invertCheckbox.checked;
+                const colorMode = colorModeSelect.value;
+                const aspectRatio = parseFloat(aspectRatioSlider.value);
+
+                let asciiText = '';
+                let asciiHtml = '';
+
+                for (let y = 0; y < height; y++) {
+                    let lineText = '';
+                    let lineHtml = '';
+
+                    for (let x = 0; x < width; x++) {
+                        const i = (y * width + x) * 4;
+                        const r = data[i];
+                        const g = data[i + 1];
+                        const b = data[i + 2];
+
+                        // Calculate brightness
+                        const brightness = (r + g + b) / 3 / 255;
+                        let charIndex = Math.floor(brightness * (charset.length - 1));
+                        if (invert) charIndex = charset.length - 1 - charIndex;
+
+                        const char = charset[charIndex] || ' ';
+                        lineText += char;
+
+                        // Add color if needed
+                        if (colorMode === 'original') {
+                            lineHtml += `<span style="color: rgb(${r},${g},${b})">${char}</span>`;
+                        } else {
+                            lineHtml += char;
+                        }
+                    }
+
+                    asciiText += lineText + '\n';
+                    asciiHtml += '<div>' + lineHtml + '</div>';
+                }
+
+                return { text: asciiText, html: asciiHtml };
+            }
+
+            /**
+             * Renders ASCII data to a canvas
+             * @param {Object} asciiData - ASCII data with text and HTML
+             * @returns {HTMLCanvasElement} Canvas with rendered ASCII
+             */
+            function renderAsciiDataToCanvas(asciiData) {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+
+                // Get rendering configuration
+                const config = getCanvasRenderingConfig();
+                const lines = asciiData.text.split('\n').filter(line => line.length > 0);
+
+                // Calculate dimensions based on ASCII content
+                const maxLineLength = Math.max(...lines.map(line => line.length));
+                const width = maxLineLength * config.charWidth + EXPORT_CONSTANTS.CANVAS_PADDING * 2;
+                const height = lines.length * config.charHeight + EXPORT_CONSTANTS.CANVAS_PADDING * 2;
+
+                canvas.width = width;
+                canvas.height = height;
+
+                // Fill background
+                ctx.fillStyle = config.bgColor;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                // Set font
+                ctx.font = config.font;
+                ctx.textBaseline = 'top';
+
+                // Render ASCII
+                if (asciiData.html && asciiData.html.includes('<span')) {
+                    renderColoredAsciiToCanvas(ctx, config, asciiData.html, lines);
+                } else {
+                    renderMonochromeAsciiToCanvas(ctx, config, lines);
+                }
+
+                return canvas;
+            }
+
+            /**
+             * Exports canvas as GIF using gif.js library (supports animated GIFs)
+             * @param {HTMLCanvasElement} canvas - Canvas to export (ignored for animated GIFs)
              * @param {HTMLElement} loadingIndicator - Loading indicator to remove on completion
              */
-            function exportCanvasAsGif(canvas, loadingIndicator) {
+            async function exportCanvasAsGif(canvas, loadingIndicator) {
                 if (typeof GIF === 'undefined') {
                     // Fallback to PNG if gif.js is not loaded
                     console.warn('gif.js library not loaded, falling back to PNG');
@@ -2476,6 +2818,28 @@
                     return;
                 }
 
+                try {
+                    // Check if this is an animated GIF
+                    if (state.isAnimatedGif && state.gifFrames.length > 0) {
+                        // Export animated GIF
+                        await exportAnimatedGif(loadingIndicator);
+                    } else {
+                        // Export single frame GIF
+                        exportSingleFrameGif(canvas, loadingIndicator);
+                    }
+                } catch (error) {
+                    console.error('Error exporting GIF:', error);
+                    removeLoadingIndicator(loadingIndicator);
+                    alert('Error exporting GIF: ' + error.message);
+                }
+            }
+
+            /**
+             * Exports a single frame as GIF
+             * @param {HTMLCanvasElement} canvas - Canvas to export
+             * @param {HTMLElement} loadingIndicator - Loading indicator
+             */
+            function exportSingleFrameGif(canvas, loadingIndicator) {
                 // Initialize GIF encoder
                 const gif = new GIF({
                     workers: EXPORT_CONSTANTS.GIF_WORKERS,
@@ -2500,6 +2864,100 @@
                     console.error('GIF encoding error:', error);
                     removeLoadingIndicator(loadingIndicator);
                     alert('Error encoding GIF. Please try again or use PNG export.');
+                });
+
+                // Start encoding
+                gif.render();
+            }
+
+            /**
+             * Exports animated GIF with all frames converted to ASCII
+             * @param {HTMLElement} loadingIndicator - Loading indicator
+             */
+            async function exportAnimatedGif(loadingIndicator) {
+                const frames = state.gifFrames;
+                console.log(`Exporting animated GIF with ${frames.length} frames`);
+
+                // Update loading message
+                if (loadingIndicator) {
+                    const messageEl = loadingIndicator.querySelector('.loading-text');
+                    if (messageEl) {
+                        messageEl.textContent = `Converting frame 0/${frames.length}...`;
+                    }
+                }
+
+                // Convert all frames to ASCII canvases
+                const asciiCanvases = [];
+                for (let i = 0; i < frames.length; i++) {
+                    // Update progress
+                    if (loadingIndicator) {
+                        const messageEl = loadingIndicator.querySelector('.loading-text');
+                        if (messageEl) {
+                            messageEl.textContent = `Converting frame ${i + 1}/${frames.length}...`;
+                        }
+                    }
+
+                    // Convert this frame to ASCII canvas
+                    const frameCanvas = frames[i].canvas;
+                    const asciiCanvas = convertImageToAsciiCanvas(frameCanvas);
+                    asciiCanvases.push({
+                        canvas: asciiCanvas,
+                        delay: frames[i].delay
+                    });
+
+                    // Small delay to allow UI to update
+                    await new Promise(resolve => setTimeout(resolve, 10));
+                }
+
+                // Update loading message for encoding
+                if (loadingIndicator) {
+                    const messageEl = loadingIndicator.querySelector('.loading-text');
+                    if (messageEl) {
+                        messageEl.textContent = 'Encoding animated GIF...';
+                    }
+                }
+
+                // Get dimensions from first canvas
+                const firstCanvas = asciiCanvases[0].canvas;
+
+                // Initialize GIF encoder
+                const gif = new GIF({
+                    workers: EXPORT_CONSTANTS.GIF_WORKERS,
+                    quality: EXPORT_CONSTANTS.GIF_QUALITY,
+                    width: firstCanvas.width,
+                    height: firstCanvas.height,
+                    workerScript: 'https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.worker.js',
+                    repeat: 0 // 0 = loop forever
+                });
+
+                // Add progress event
+                gif.on('progress', function(progress) {
+                    if (loadingIndicator) {
+                        const messageEl = loadingIndicator.querySelector('.loading-text');
+                        if (messageEl) {
+                            messageEl.textContent = `Encoding... ${Math.round(progress * 100)}%`;
+                        }
+                    }
+                });
+
+                // Add all frames to the GIF
+                asciiCanvases.forEach(frame => {
+                    gif.addFrame(frame.canvas, { delay: frame.delay });
+                });
+
+                // Handle successful encoding
+                gif.on('finished', function(blob) {
+                    console.log('GIF encoding complete');
+                    const url = URL.createObjectURL(blob);
+                    downloadFile(url, 'ascii_art_animated.gif');
+                    removeLoadingIndicator(loadingIndicator);
+                });
+
+                // Handle encoding errors
+                gif.on('error', function(error) {
+                    console.error('GIF encoding error:', error);
+                    removeLoadingIndicator(loadingIndicator);
+                    alert('Error encoding animated GIF. Please try again.');
                 });
 
                 // Start encoding
