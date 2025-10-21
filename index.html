@@ -738,81 +738,314 @@
     <script src="https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // DOM elements
-            const fileUpload = document.getElementById('file-upload');
-            const imageInput = document.getElementById('image-input');
-            const preview = document.getElementById('preview');
-            const convertBtn = document.getElementById('convert-btn');
-            const asciiOutput = document.getElementById('ascii-output');
-            const charsetSelect = document.getElementById('charset');
-            const customCharset = document.getElementById('custom-charset');
-            const colorModeSelect = document.getElementById('color-mode');
-            const colorOptions = document.getElementById('color-options');
-            const gradientOptions = document.getElementById('gradient-options');
-            const risoOptions = document.getElementById('riso-options');
-            const mixedRisoOptions = document.getElementById('mixed-riso-options');
-            const colorPresets = document.querySelectorAll('.color-option');
-            const customColorInput = document.getElementById('custom-color');
-            const downloadTxtBtn = document.getElementById('download-txt');
-            const downloadHtmlBtn = document.getElementById('download-html');
-            const downloadPngBtn = document.getElementById('download-png');
-            const downloadGifBtn = document.getElementById('download-gif');
-            const fontSizeSlider = document.getElementById('font-size');
-            const fontSizeValue = document.getElementById('font-size-value');
-            const lineHeightSlider = document.getElementById('line-height');
-            const lineHeightValue = document.getElementById('line-height-value');
-            const letterSpacingSlider = document.getElementById('letter-spacing');
-            const letterSpacingValue = document.getElementById('letter-spacing-value');
-            const bgColorInput = document.getElementById('bg-color');
-            const textColorInput = document.getElementById('text-color');
-            const resolutionSlider = document.getElementById('resolution');
-            const resolutionValue = document.getElementById('resolution-value');
-            const contrastSlider = document.getElementById('contrast');
-            const contrastValue = document.getElementById('contrast-value');
-            const brightnessSlider = document.getElementById('brightness');
-            const brightnessValue = document.getElementById('brightness-value');
-            const aspectRatioSlider = document.getElementById('aspect-ratio');
-            const aspectRatioValue = document.getElementById('aspect-ratio-value');
-            const risoThresholdSlider = document.getElementById('riso-threshold');
-            const risoThresholdValue = document.getElementById('riso-threshold-value');
-            const resetDisplayBtn = document.getElementById('reset-display-settings');
-            const loading = document.getElementById('loading');
-            
-            // Masking elements
-            const maskModeSelect = document.getElementById('mask-mode');
-            const maskControls = document.getElementById('mask-controls');
-            const startMaskingBtn = document.getElementById('start-masking');
-            const clearMaskBtn = document.getElementById('clear-mask');
-            const maskingCanvas = document.getElementById('masking-canvas');
-            const maskInstructions = document.getElementById('mask-instructions');
-            const foregroundColorSection = document.getElementById('foreground-color-section');
-            const foregroundColorModeSelect = document.getElementById('foreground-color-mode');
-            const foregroundColorOptions = document.getElementById('foreground-color-options');
-            const foregroundGradientOptions = document.getElementById('foreground-gradient-options');
-            const foregroundRisoOptions = document.getElementById('foreground-riso-options');
-            const foregroundMixedRisoOptions = document.getElementById('foreground-mixed-riso-options');
-            const foregroundCustomColorInput = document.getElementById('foreground-custom-color');
-            const foregroundRisoThresholdSlider = document.getElementById('foreground-riso-threshold');
-            const foregroundRisoThresholdValue = document.getElementById('foreground-riso-threshold-value');
-            const brushSizeSlider = document.getElementById('brush-size');
-            const brushSizeValue = document.getElementById('brush-size-value');
-            const brushPreview = document.getElementById('brush-preview');
-            const showMaskPreviewCheckbox = document.getElementById('show-mask-preview');
-            
+            // ============================================================================
+            // CONFIGURATION & CONSTANTS
+            // ============================================================================
+
+            /**
+             * Application configuration constants
+             */
+            const CONFIG = {
+                // Default display settings
+                DEFAULT_FONT_SIZE: 10,
+                DEFAULT_LINE_HEIGHT: 1.0,
+                DEFAULT_LETTER_SPACING: 0,
+                DEFAULT_BG_COLOR: '#000000',
+                DEFAULT_TEXT_COLOR: '#00ff00',
+
+                // Processing settings
+                DEFAULT_RESOLUTION: 100,
+                DEFAULT_CONTRAST: 100,
+                DEFAULT_BRIGHTNESS: 100,
+                DEFAULT_ASPECT_RATIO: 0.5,
+                LIVE_PREVIEW_MAX_RESOLUTION: 150,
+                DEBOUNCE_DELAY: 300,
+
+                // Masking settings
+                DEFAULT_BRUSH_SIZE: 20,
+                MIN_BRUSH_SIZE: 1,
+                MAX_BRUSH_SIZE: 100,
+                MASK_ALPHA: 0.5,
+                MASK_PREVIEW_COLOR: '#ff00ff',
+
+                // Export settings
+                CANVAS_PADDING: 20,
+                CHAR_WIDTH_RATIO: 0.6,
+                GIF_QUALITY: 10,
+                GIF_WORKERS: 2,
+
+                // File handling
+                MAX_FILE_SIZE: 10 * 1024 * 1024, // 10MB
+                SUPPORTED_IMAGE_TYPES: ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp']
+            };
+
+            /**
+             * Character sets for ASCII conversion
+             */
+            const CHARSETS = {
+                standard: '@%#*+=-:. ',
+                simple: '#. ',
+                complex: '$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\\|()1{}[]?-_+~<>i!lI;:,"^`\'. ',
+                'bold-complex': '$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\\|()1{}[]?-_+~<>i!lI;:,"^`\'. ',
+                arabic: 'ماشاءاللهلااله...',  // Simplified for space
+                korean: '한글문자셋...',       // Simplified for space
+                custom: '' // User-defined
+            };
+
+            // ============================================================================
+            // DOM ELEMENT REFERENCES
+            // ============================================================================
+
+            /**
+             * DOM Elements - organized by functionality
+             */
+            const DOM = {
+                // File upload & preview
+                fileUpload: document.getElementById('file-upload'),
+                imageInput: document.getElementById('image-input'),
+                preview: document.getElementById('preview'),
+                convertBtn: document.getElementById('convert-btn'),
+                loading: document.getElementById('loading'),
+
+                // Output
+                asciiOutput: document.getElementById('ascii-output'),
+
+                // Character set controls
+                charsetSelect: document.getElementById('charset'),
+                customCharset: document.getElementById('custom-charset'),
+
+                // Color mode controls
+                colorModeSelect: document.getElementById('color-mode'),
+                colorOptions: document.getElementById('color-options'),
+                gradientOptions: document.getElementById('gradient-options'),
+                risoOptions: document.getElementById('riso-options'),
+                mixedRisoOptions: document.getElementById('mixed-riso-options'),
+                colorPresets: document.querySelectorAll('.color-option'),
+                customColorInput: document.getElementById('custom-color'),
+
+                // Display settings
+                fontSizeSlider: document.getElementById('font-size'),
+                fontSizeValue: document.getElementById('font-size-value'),
+                lineHeightSlider: document.getElementById('line-height'),
+                lineHeightValue: document.getElementById('line-height-value'),
+                letterSpacingSlider: document.getElementById('letter-spacing'),
+                letterSpacingValue: document.getElementById('letter-spacing-value'),
+                bgColorInput: document.getElementById('bg-color'),
+                textColorInput: document.getElementById('text-color'),
+                resetDisplayBtn: document.getElementById('reset-display-settings'),
+
+                // Processing settings
+                resolutionSlider: document.getElementById('resolution'),
+                resolutionValue: document.getElementById('resolution-value'),
+                contrastSlider: document.getElementById('contrast'),
+                contrastValue: document.getElementById('contrast-value'),
+                brightnessSlider: document.getElementById('brightness'),
+                brightnessValue: document.getElementById('brightness-value'),
+                aspectRatioSlider: document.getElementById('aspect-ratio'),
+                aspectRatioValue: document.getElementById('aspect-ratio-value'),
+                risoThresholdSlider: document.getElementById('riso-threshold'),
+                risoThresholdValue: document.getElementById('riso-threshold-value'),
+
+                // Download buttons
+                downloadTxtBtn: document.getElementById('download-txt'),
+                downloadHtmlBtn: document.getElementById('download-html'),
+                downloadPngBtn: document.getElementById('download-png'),
+                downloadGifBtn: document.getElementById('download-gif'),
+
+                // Masking controls
+                maskModeSelect: document.getElementById('mask-mode'),
+                maskControls: document.getElementById('mask-controls'),
+                startMaskingBtn: document.getElementById('start-masking'),
+                clearMaskBtn: document.getElementById('clear-mask'),
+                maskingCanvas: document.getElementById('masking-canvas'),
+                maskInstructions: document.getElementById('mask-instructions'),
+                brushSizeSlider: document.getElementById('brush-size'),
+                brushSizeValue: document.getElementById('brush-size-value'),
+                brushPreview: document.getElementById('brush-preview'),
+                showMaskPreviewCheckbox: document.getElementById('show-mask-preview'),
+
+                // Foreground color (masking)
+                foregroundColorSection: document.getElementById('foreground-color-section'),
+                foregroundColorModeSelect: document.getElementById('foreground-color-mode'),
+                foregroundColorOptions: document.getElementById('foreground-color-options'),
+                foregroundGradientOptions: document.getElementById('foreground-gradient-options'),
+                foregroundRisoOptions: document.getElementById('foreground-riso-options'),
+                foregroundMixedRisoOptions: document.getElementById('foreground-mixed-riso-options'),
+                foregroundCustomColorInput: document.getElementById('foreground-custom-color'),
+                foregroundRisoThresholdSlider: document.getElementById('foreground-riso-threshold'),
+                foregroundRisoThresholdValue: document.getElementById('foreground-riso-threshold-value')
+            };
+
+            // Backwards compatibility - keep original references for now
+            const fileUpload = DOM.fileUpload;
+            const imageInput = DOM.imageInput;
+            const preview = DOM.preview;
+            const convertBtn = DOM.convertBtn;
+            const asciiOutput = DOM.asciiOutput;
+            const charsetSelect = DOM.charsetSelect;
+            const customCharset = DOM.customCharset;
+            const colorModeSelect = DOM.colorModeSelect;
+            const colorOptions = DOM.colorOptions;
+            const gradientOptions = DOM.gradientOptions;
+            const risoOptions = DOM.risoOptions;
+            const mixedRisoOptions = DOM.mixedRisoOptions;
+            const colorPresets = DOM.colorPresets;
+            const customColorInput = DOM.customColorInput;
+            const downloadTxtBtn = DOM.downloadTxtBtn;
+            const downloadHtmlBtn = DOM.downloadHtmlBtn;
+            const downloadPngBtn = DOM.downloadPngBtn;
+            const downloadGifBtn = DOM.downloadGifBtn;
+            const fontSizeSlider = DOM.fontSizeSlider;
+            const fontSizeValue = DOM.fontSizeValue;
+            const lineHeightSlider = DOM.lineHeightSlider;
+            const lineHeightValue = DOM.lineHeightValue;
+            const letterSpacingSlider = DOM.letterSpacingSlider;
+            const letterSpacingValue = DOM.letterSpacingValue;
+            const bgColorInput = DOM.bgColorInput;
+            const textColorInput = DOM.textColorInput;
+            const resolutionSlider = DOM.resolutionSlider;
+            const resolutionValue = DOM.resolutionValue;
+            const contrastSlider = DOM.contrastSlider;
+            const contrastValue = DOM.contrastValue;
+            const brightnessSlider = DOM.brightnessSlider;
+            const brightnessValue = DOM.brightnessValue;
+            const aspectRatioSlider = DOM.aspectRatioSlider;
+            const aspectRatioValue = DOM.aspectRatioValue;
+            const risoThresholdSlider = DOM.risoThresholdSlider;
+            const risoThresholdValue = DOM.risoThresholdValue;
+            const resetDisplayBtn = DOM.resetDisplayBtn;
+            const loading = DOM.loading;
+            const maskModeSelect = DOM.maskModeSelect;
+            const maskControls = DOM.maskControls;
+            const startMaskingBtn = DOM.startMaskingBtn;
+            const clearMaskBtn = DOM.clearMaskBtn;
+            const maskingCanvas = DOM.maskingCanvas;
+            const maskInstructions = DOM.maskInstructions;
+            const foregroundColorSection = DOM.foregroundColorSection;
+            const foregroundColorModeSelect = DOM.foregroundColorModeSelect;
+            const foregroundColorOptions = DOM.foregroundColorOptions;
+            const foregroundGradientOptions = DOM.foregroundGradientOptions;
+            const foregroundRisoOptions = DOM.foregroundRisoOptions;
+            const foregroundMixedRisoOptions = DOM.foregroundMixedRisoOptions;
+            const foregroundCustomColorInput = DOM.foregroundCustomColorInput;
+            const foregroundRisoThresholdSlider = DOM.foregroundRisoThresholdSlider;
+            const foregroundRisoThresholdValue = DOM.foregroundRisoThresholdValue;
+            const brushSizeSlider = DOM.brushSizeSlider;
+            const brushSizeValue = DOM.brushSizeValue;
+            const brushPreview = DOM.brushPreview;
+            const showMaskPreviewCheckbox = DOM.showMaskPreviewCheckbox;
+
+            // ============================================================================
+            // APPLICATION STATE
+            // ============================================================================
+
+            /**
+             * Application state management
+             */
+            const state = {
+                originalImage: null,
+                processedAscii: null,
+                maskData: null,
+                isMaskingActive: false,
+                isDrawing: false,
+                lastX: 0,
+                lastY: 0,
+                brushSize: CONFIG.DEFAULT_BRUSH_SIZE
+            };
+
             // Masking context
-            const maskCtx = maskingCanvas.getContext('2d');
+            const maskCtx = DOM.maskingCanvas.getContext('2d');
+
+            // Backwards compatibility
+            let originalImage = null;
+            let processedAscii = null;
+            let maskData = null;
+            let isMaskingActive = false;
             let isDrawing = false;
             let lastX = 0;
             let lastY = 0;
-            let brushSize = 20;
-            let isMaskingActive = false;
-            let maskData = null; // Will store the mask image data
-            
-            // Image data
-            let originalImage = null;
-            let processedAscii = null;
-            
-            // File upload handling - completely revised for better reliability
+            let brushSize = CONFIG.DEFAULT_BRUSH_SIZE;
+
+            // ============================================================================
+            // UTILITY FUNCTIONS
+            // ============================================================================
+
+            /**
+             * Debounces a function call
+             * @param {Function} func - Function to debounce
+             * @param {number} wait - Wait time in milliseconds
+             * @returns {Function} Debounced function
+             */
+            function debounce(func, wait) {
+                let timeout;
+                return function executedFunction(...args) {
+                    const later = () => {
+                        clearTimeout(timeout);
+                        func(...args);
+                    };
+                    clearTimeout(timeout);
+                    timeout = setTimeout(later, wait);
+                };
+            }
+
+            /**
+             * Converts hex color to RGB object
+             * @param {string} hex - Hex color string
+             * @returns {Object|null} RGB object or null if invalid
+             */
+            function hexToRgb(hex) {
+                const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+                return result ? {
+                    r: parseInt(result[1], 16),
+                    g: parseInt(result[2], 16),
+                    b: parseInt(result[3], 16)
+                } : null;
+            }
+
+            /**
+             * Shows loading indicator
+             */
+            function showLoading() {
+                if (loading) {
+                    loading.style.display = 'flex';
+                }
+            }
+
+            /**
+             * Hides loading indicator
+             */
+            function hideLoading() {
+                if (loading) {
+                    loading.style.display = 'none';
+                }
+            }
+
+            /**
+             * Validates file type and size
+             * @param {File} file - File to validate
+             * @returns {boolean} True if valid
+             */
+            function validateFile(file) {
+                if (!file.type.match('image.*')) {
+                    alert('Please select an image file.');
+                    return false;
+                }
+
+                if (file.size > CONFIG.MAX_FILE_SIZE) {
+                    alert(`File size exceeds ${CONFIG.MAX_FILE_SIZE / 1024 / 1024}MB limit.`);
+                    return false;
+                }
+
+                return true;
+            }
+
+            // ============================================================================
+            // FILE UPLOAD & IMAGE LOADING
+            // ============================================================================
+
+            /**
+             * Initializes file upload functionality with drag-and-drop support
+             */
             function initFileUpload() {
                 const dropArea = document.getElementById('file-upload');
                 const fileInput = document.getElementById('image-input');
@@ -890,12 +1123,16 @@
             // Initialize file upload functionality
             initFileUpload();
 
+            /**
+             * Handles file upload and previews the image
+             * @param {File} file - Image file to upload
+             */
             function handleFileUpload(file) {
-                if (!file.type.match('image.*')) {
-                    alert('Please select an image file.');
+                // Validate file before processing
+                if (!validateFile(file)) {
                     return;
                 }
-                
+
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     preview.src = e.target.result;
@@ -915,16 +1152,28 @@
                 reader.readAsDataURL(file);
             }
             
+            /**
+             * Loads an image from a data URL and sets up for processing
+             * @param {string} src - Image data URL
+             */
             function loadImage(src) {
                 originalImage = new Image();
+
                 originalImage.onload = function() {
                     // Image is loaded and ready for processing
                     // Setup masking canvas if needed
                     adjustMaskingCanvas();
-                    
+
                     // Automatically convert when image is loaded
                     updateAscii();
                 };
+
+                originalImage.onerror = function() {
+                    console.error('Failed to load image');
+                    alert('Failed to load image. Please try another file.');
+                    hideLoading();
+                };
+
                 originalImage.src = src;
             }
             
@@ -949,7 +1198,9 @@
                 }
             }
             
-            // Character set handling
+            // ============================================================================
+            // CHARACTER SET HANDLING
+            // ============================================================================
             charsetSelect.addEventListener('change', function() {
                 if (this.value === 'custom') {
                     customCharset.style.display = 'block';
@@ -979,7 +1230,9 @@
                 debouncedUpdate();
             });
             
-            // Color mode handling
+            // ============================================================================
+            // COLOR MODE HANDLING
+            // ============================================================================
             colorModeSelect.addEventListener('change', function() {
                 colorOptions.style.display = 'none';
                 gradientOptions.style.display = 'none';
@@ -1058,8 +1311,11 @@
                     }
                 });
             });
-            
-            // Display settings
+
+            // ============================================================================
+            // DISPLAY SETTINGS EVENT HANDLERS
+            // ============================================================================
+
             fontSizeSlider.addEventListener('input', function() {
                 const size = this.value;
                 fontSizeValue.textContent = `${size}px`;
@@ -1150,7 +1406,9 @@
                 }
             });
             
-            // Masking mode handling
+            // ============================================================================
+            // MASKING FUNCTIONALITY
+            // ============================================================================
             maskModeSelect.addEventListener('change', function() {
                 if (this.value === 'none') {
                     maskControls.style.display = 'none';
@@ -1590,8 +1848,24 @@
                     asciiOutput.style.display = 'block';
                 }, 100);
             });
-            
-            // Function to convert image to ASCII
+
+            // ============================================================================
+            // ASCII CONVERSION CORE LOGIC
+            // ============================================================================
+
+            /**
+             * Converts an image to ASCII art
+             * @param {HTMLImageElement} img - Source image
+             * @param {string} charset - Character set to use
+             * @param {number} resolution - Output resolution (width in characters)
+             * @param {number} contrast - Contrast adjustment (0-200)
+             * @param {number} brightness - Brightness adjustment (0-200)
+             * @param {string} mode - Rendering mode ('classic' or 'detailed')
+             * @param {string} colorMode - Color mode for output
+             * @param {number} aspectRatio - Aspect ratio compensation factor
+             * @param {boolean} useBold - Whether to use bold characters
+             * @returns {Object} Object containing ASCII text and HTML
+             */
             function convertToAscii(img, charset, resolution, contrast, brightness, mode, colorMode, aspectRatio, useBold = false) {
                 // Create canvas for image processing
                 const canvas = document.createElement('canvas');
@@ -2232,7 +2506,10 @@
                 gif.render();
             }
 
-            // Download functions
+            // ============================================================================
+            // EXPORT / DOWNLOAD FUNCTIONS
+            // ============================================================================
+
             downloadTxtBtn.addEventListener('click', function() {
                 if (!processedAscii) {
                     alert('Please convert an image to ASCII art first.');
