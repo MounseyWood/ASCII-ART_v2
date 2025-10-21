@@ -728,12 +728,14 @@
                     <button class="download-btn" id="download-txt">Download as TXT</button>
                     <button class="download-btn" id="download-html">Download as HTML</button>
                     <button class="download-btn" id="download-png">Download as PNG</button>
+                    <button class="download-btn" id="download-gif">Download as GIF</button>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Start of JavaScript - continued in Part 2 -->
+    <script src="https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // DOM elements
@@ -754,6 +756,7 @@
             const downloadTxtBtn = document.getElementById('download-txt');
             const downloadHtmlBtn = document.getElementById('download-html');
             const downloadPngBtn = document.getElementById('download-png');
+            const downloadGifBtn = document.getElementById('download-gif');
             const fontSizeSlider = document.getElementById('font-size');
             const fontSizeValue = document.getElementById('font-size-value');
             const lineHeightSlider = document.getElementById('line-height');
@@ -2255,7 +2258,148 @@
                     document.body.removeChild(loadingIndicator);
                 }
             });
-            
+
+            // Download as GIF
+            downloadGifBtn.addEventListener('click', function() {
+                if (!processedAscii) {
+                    alert('Please convert an image to ASCII art first.');
+                    return;
+                }
+
+                // Show a loading indicator
+                const loadingIndicator = document.createElement('div');
+                loadingIndicator.textContent = 'Generating GIF...';
+                loadingIndicator.style.position = 'fixed';
+                loadingIndicator.style.top = '50%';
+                loadingIndicator.style.left = '50%';
+                loadingIndicator.style.transform = 'translate(-50%, -50%)';
+                loadingIndicator.style.backgroundColor = 'rgba(0,0,0,0.7)';
+                loadingIndicator.style.color = 'white';
+                loadingIndicator.style.padding = '20px 40px';
+                loadingIndicator.style.borderRadius = '8px';
+                loadingIndicator.style.zIndex = '9999';
+                loadingIndicator.style.fontSize = '18px';
+                document.body.appendChild(loadingIndicator);
+
+                try {
+                    // Create a canvas to render the ASCII art
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+
+                    // Set canvas properties
+                    const fontSize = parseInt(fontSizeSlider.value);
+                    const lineHeight = parseFloat(lineHeightSlider.value);
+                    const letterSpacing = parseFloat(letterSpacingSlider.value);
+
+                    // Calculate canvas dimensions
+                    const lines = processedAscii.text.split('\n');
+                    const maxLineLength = Math.max(...lines.map(line => line.length));
+
+                    const charWidth = fontSize * 0.6; // Approximate monospace character width
+                    const charHeight = fontSize * lineHeight;
+
+                    canvas.width = Math.ceil(maxLineLength * charWidth * (1 + letterSpacing)) + 40;
+                    canvas.height = Math.ceil(lines.length * charHeight) + 40;
+
+                    // Fill background
+                    ctx.fillStyle = bgColorInput.value;
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                    // Set text properties
+                    ctx.font = fontSize + 'px monospace';
+                    ctx.textBaseline = 'top';
+
+                    // Check if we have colored ASCII
+                    const hasColors = !colorModeSelect.value.startsWith('none') || maskModeSelect.value !== 'none';
+
+                    if (hasColors && processedAscii.html) {
+                        // Parse HTML and render with colors
+                        const tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = processedAscii.html;
+
+                        let y = 20;
+                        const htmlLines = tempDiv.querySelectorAll('div');
+
+                        if (htmlLines.length > 0) {
+                            htmlLines.forEach(div => {
+                                let x = 20;
+                                const spans = div.querySelectorAll('span');
+
+                                if (spans.length > 0) {
+                                    spans.forEach(span => {
+                                        const text = span.textContent;
+                                        const color = span.style.color || textColorInput.value;
+                                        ctx.fillStyle = color;
+                                        ctx.fillText(text, x, y);
+                                        x += text.length * charWidth * (1 + letterSpacing);
+                                    });
+                                } else {
+                                    ctx.fillStyle = textColorInput.value;
+                                    ctx.fillText(div.textContent, x, y);
+                                }
+                                y += charHeight;
+                            });
+                        } else {
+                            // Fallback to plain text rendering
+                            ctx.fillStyle = textColorInput.value;
+                            lines.forEach((line, i) => {
+                                ctx.fillText(line, 20, 20 + i * charHeight);
+                            });
+                        }
+                    } else {
+                        // Simple monochrome rendering
+                        ctx.fillStyle = textColorInput.value;
+                        lines.forEach((line, i) => {
+                            ctx.fillText(line, 20, 20 + i * charHeight);
+                        });
+                    }
+
+                    // Convert canvas to GIF using gif.js library
+                    if (typeof GIF !== 'undefined') {
+                        // Use gif.js for proper GIF encoding
+                        const gif = new GIF({
+                            workers: 2,
+                            quality: 10,
+                            width: canvas.width,
+                            height: canvas.height,
+                            workerScript: 'https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.worker.js'
+                        });
+
+                        gif.addFrame(canvas, {delay: 0});
+
+                        gif.on('finished', function(blob) {
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = 'ascii_art.gif';
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+                            URL.revokeObjectURL(url);
+                            document.body.removeChild(loadingIndicator);
+                        });
+
+                        gif.render();
+                    } else {
+                        // Fallback to PNG if gif.js is not loaded
+                        console.warn('gif.js library not loaded, falling back to PNG');
+                        const dataURL = canvas.toDataURL('image/png');
+                        const a = document.createElement('a');
+                        a.href = dataURL;
+                        a.download = 'ascii_art.png';
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        document.body.removeChild(loadingIndicator);
+                        alert('GIF encoding library not available. Downloaded as PNG instead.');
+                    }
+                } catch (error) {
+                    console.error('Error generating GIF:', error);
+                    alert('Error generating GIF: ' + error.message);
+                    document.body.removeChild(loadingIndicator);
+                }
+            });
+
             // Initialize UI
             window.addEventListener('resize', function() {
                 adjustMaskingCanvas();
