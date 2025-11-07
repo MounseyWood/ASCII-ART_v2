@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Image to ASCII Art Converter</title>
+    <title>Image to ASCII Art Converter - Enhanced Edition v2.0</title>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -384,7 +385,7 @@
     <div class="container">
         <div class="input-section">
             <div class="input-container">
-                <h1>Image to ASCII Art Converter</h1>
+                <h1>Image to ASCII Art Converter <span style="font-size: 0.4em; color: #3498db; font-weight: normal;">v2.0</span></h1>
                 <div class="file-upload" id="file-upload" tabindex="0" role="button" aria-label="Upload an image">
                     <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#3498db" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
@@ -892,23 +893,35 @@
                     alert('Please select an image file.');
                     return;
                 }
-                
+
+                // Validate file size (10MB limit)
+                const maxSize = 10 * 1024 * 1024; // 10MB
+                if (file.size > maxSize) {
+                    alert('File too large. Please use an image under 10MB.');
+                    return;
+                }
+
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     preview.src = e.target.result;
                     preview.style.display = 'block';
-                    
+
                     // Hide the upload icon and text when image is displayed
                     const uploadIcon = fileUpload.querySelector('svg');
                     const uploadText = fileUpload.querySelector('p');
                     if (uploadIcon) uploadIcon.style.display = 'none';
                     if (uploadText) uploadText.style.display = 'none';
-                    
+
                     loadImage(e.target.result);
-                    
+
                     // Clear any existing mask
                     clearMask();
                 };
+
+                reader.onerror = function() {
+                    alert('Error reading file. Please try again.');
+                };
+
                 reader.readAsDataURL(file);
             }
             
@@ -918,10 +931,20 @@
                     // Image is loaded and ready for processing
                     // Setup masking canvas if needed
                     adjustMaskingCanvas();
-                    
+
                     // Automatically convert when image is loaded
                     updateAscii();
                 };
+
+                originalImage.onerror = function() {
+                    alert('Error loading image. Please try a different file or format.');
+                    preview.style.display = 'none';
+                    const uploadIcon = fileUpload.querySelector('svg');
+                    const uploadText = fileUpload.querySelector('p');
+                    if (uploadIcon) uploadIcon.style.display = 'block';
+                    if (uploadText) uploadText.style.display = 'block';
+                };
+
                 originalImage.src = src;
             }
             
@@ -1506,85 +1529,92 @@
                 
                 // Allow the UI to update before starting the conversion
                 setTimeout(() => {
-                    const mode = document.getElementById('mode').value;
-                    const charsetType = charsetSelect.value;
-                    const resolution = parseInt(resolutionSlider.value);
-                    const contrast = parseFloat(contrastSlider.value) / 100;
-                    const brightness = parseFloat(brightnessSlider.value) / 100;
-                    const aspectRatio = parseFloat(aspectRatioSlider.value);
-                    const colorMode = colorModeSelect.value;
-                    const useMasking = maskModeSelect.value !== 'none' && maskData !== null;
-                    const foregroundColorMode = foregroundColorModeSelect.value;
-                    
-                    let chars;
-                    if (charsetType === 'standard') {
-                        chars = '@%#*+=-:. ';
-                    } else if (charsetType === 'simple') {
-                        chars = '#. ';
-                    } else if (charsetType === 'complex') {
-                        chars = '$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\\|()1{}[]?-_+~<>i!lI;:,"^`\'. ';
-                    } else if (charsetType === 'bold-complex') {
-                        chars = '$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\\|()1{}[]?-_+~<>i!lI;:,"^`\'. ';
-                    } else if (charsetType === 'arabic') {
-                        chars = 'ابتثجحخدذرزسشصضطظعغفقكلمنهويءآأؤإئىةـڢڤڥڦڧڨݐݑݒݓݔݕݖݗݘݙݚݛݜݝݞݟݠݡࡀࡁࡂࡃࡄࡅࡆࡇࡈࡉࡊࡋࡌࡍࡎࡏࡐࡑࡒࡓࡔࡕࡖࡗࡘ ';
-                    } else if (charsetType === 'korean') {
-                        chars = '가각갂갃간갅갆갇갈갉갊갋갌갍갎갏감갑값갓갔강갖갗갘같갚갛개객갞갟갠갡갢갣갤갥갦갧갨갩갪갫갬갭갮갯갰갱갲갳갴갵갶갷갸갹갺갻갼갽갾갿걀걁걂걃걄걅걆걇걈걉걊걋걌걍걎걏걐걑걒걓걔걕걖걗걘걙걚걛걜걝걞걟걠걡걢걣걤걥걦걧걨걩걪걫걬걭걮걯거걱걲걳건걵걶걷걸걹걺걻걼걽걾걿검겁겂것겄겅겆겇겈겉겊겋게겍겎겏겐겑겒겓겔겕겖겗겘겙겚겛겜겝겞겟겠겡겢겣겤겥겦겧겨격겪겫견겭겮겯결겱겲겳겴겵겶겷겸겹겺겻겼경겾겿곀곁곂곃계곅곆곇곈곉곊곋곌곍곎곏곐곑곒곓곔곕곖곗곘곙곚곛곜곝곞곟고곡곢곣곤곥곦곧골곩곪곫곬곭곮곯곰곱곲곳곴공곶곷곸곹곺곻과곽곾곿관괁괂괃괄괅괆괇괈괉괊괋괌괍괎괏괐광괒괓괔괕괖괗괘괙괚괛괜괝괞괟괠괡괢괣괤괥괦괧괨괩괪괫괬괭괮괯괰괱괲괳괴괵괶괷괸괹괺괻괼괽괾괿굀굁굂굃굄굅굆굇굈굉굊굋굌굍굎굏교굑굒굓굔굕굖굗굘굙굚굛굜굝굞굟굠굡굢굣굤굥굦굧굨굩굪굫구국굮굯군굱굲굳굴굵굶굷굸굹굺굻굼굽굾굿궀궁궂궃궄궅궆궇궈궉궊궋권궍궎궏궐궑궒궓궔궕궖궗궘궙궚궛궜궝궞궟궠궡궢궣궤궥궦궧궨궩궪궫궬궭궮궯궰궱궲궳궴궵궶궷궸궹궺궻궼궽궾궿귀귁귂귃귄귅귆귇귈귉귊귋귌귍귎귏귐귑귒귓귔귕귖귗귘귙귚귛규귝귞귟균귡귢귣귤귥귦귧귨귩귪귫귬귭귮귯귰귱귲귳귴귵귶귷그극귺귻근귽귾귿글긁긂긃긄긅긆긇금급긊긋긌긍긎긏긐긑긒긓긔긕긖긗긘긙긚긛긜긝긞긟긠긡긢긣긤긥긦긧긨긩긪긫긬긭긮긯기긱긲긳긴긵긶긷길긹긺긻긼긽긾긿김깁깂깃깄깅깆깇깈깉깊깋까깍깎깏깐깑깒깓깔깕깖깗깘깙깚깛깜깝깞깟깠깡깢깣깤깥깦깧깨깩깪깫깬깭깮깯깰깱깲깳깴깵깶깷깸깹깺깻깼깽깾깿꺀꺁꺂꺃꺄꺅꺆꺇꺈꺉꺊꺋꺌꺍꺎꺏꺐꺑꺒꺓꺔꺕꺖꺗꺘꺙꺚꺛꺜꺝꺞꺟꺠꺡꺢꺣꺤꺥꺦꺧꺨꺩꺪꺫꺬꺭꺮꺯꺰꺱꺲꺳꺴꺵꺶꺷꺸꺹꺺꺻꺼꺽꺾꺿껀껁껂껃껄껅껆껇껈껉껊껋껌껍껎껏껐껑껒껓껔껕껖껗께껙껚껛껜껝껞껟껠껡껢껣껤껥껦껧껨껩껪껫껬껭껮껯껰껱껲껳껴껵껶껷껸껹껺껻껼껽껾껿꼀꼁꼂꼃꼄꼅꼆꼇꼈꼉꼊꼋꼌꼍꼎꼏꼐꼑꼒꼓꼔꼕꼖꼗꼘꼙꼚꼛꼜꼝꼞꼟꼠꼡꼢꼣꼤꼥꼦꼧꼨꼩꼪꼫꼬꼭꼮꼯꼰꼱꼲꼳꼴꼵꼶꼷꼸꼹꼺꼻꼼꼽꼾꼿꽀꽁꽂꽃꽄꽅꽆꽇꽈꽉꽊꽋꽌꽍꽎꽏꽐꽑꽒꽓꽔꽕꽖꽗꽘꽙꽚꽛꽜꽝꽞꽟꽠꽡꽢꽣꽤꽥꽦꽧꽨꽩꽪꽫꽬꽭꽮꽯꽰꽱꽲꽳꽴꽵꽶꽷꽸꽹꽺꽻꽼꽽꽾꽿꾀꾁꾂꾃꾄꾅꾆꾇꾈꾉꾊꾋꾌꾍꾎꾏꾐꾑꾒꾓꾔꾕꾖꾗꾘꾙꾚꾛꾜꾝꾞꾟꾠꾡꾢꾣꾤꾥꾦꾧꾨꾩꾪꾫꾬꾭꾮꾯꾰꾱꾲꾳꾴꾵꾶꾷꾸꾹꾺꾻꾼꾽꾾꾿꿀꿁꿂꿃꿄꿅꿆꿇꿈꿉꿊꿋꿌꿍꿎꿏꿐꿑꿒꿓꿔꿕꿖꿗꿘꿙꿚꿛꿜꿝꿞꿟꿠꿡꿢꿣꿤꿥꿦꿧꿨꿩꿪꿫꿬꿭꿮꿯꿰꿱꿲꿳꿴꿵꿶꿷꿸꿹꿺꿻꿼꿽꿾꿿 ';
-                    } else {
-                        chars = customCharset.value || '@%#*+=-:. ';
-                    }
-                    
-                    // Check if we need to invert the charset based on color mode
-                    const isInverted = colorMode.includes('-inverted');
-                    if (isInverted) {
-                        chars = chars.split('').reverse().join('');
-                    }
-                    
-                    // If using masking, process with dual modes
-                    if (useMasking) {
-                        const result = convertToAsciiWithMask(
-                            originalImage, 
-                            chars, 
-                            resolution, 
-                            contrast, 
-                            brightness, 
-                            mode, 
-                            colorMode, 
-                            foregroundColorMode,
-                            aspectRatio,
-                            maskData,
-                            charsetType === 'bold-complex'
-                        );
-                        
-                        // Display the result
-                        asciiOutput.innerHTML = result.html;
-                        processedAscii = result;
-                    } else {
-                        // Standard processing without masking
-                        const result = convertToAscii(
-                            originalImage, 
-                            chars, 
-                            resolution, 
-                            contrast, 
-                            brightness, 
-                            mode, 
-                            colorMode, 
-                            aspectRatio,
-                            charsetType === 'bold-complex'
-                        );
-                        
-                        // Display the result
-                        if (colorMode.startsWith('none')) {
-                            asciiOutput.innerHTML = result.text;
-                            asciiOutput.style.color = textColorInput.value;
+                    try {
+                        const mode = document.getElementById('mode').value;
+                        const charsetType = charsetSelect.value;
+                        const resolution = parseInt(resolutionSlider.value);
+                        const contrast = parseFloat(contrastSlider.value) / 100;
+                        const brightness = parseFloat(brightnessSlider.value) / 100;
+                        const aspectRatio = parseFloat(aspectRatioSlider.value);
+                        const colorMode = colorModeSelect.value;
+                        const useMasking = maskModeSelect.value !== 'none' && maskData !== null;
+                        const foregroundColorMode = foregroundColorModeSelect.value;
+
+                        let chars;
+                        if (charsetType === 'standard') {
+                            chars = '@%#*+=-:. ';
+                        } else if (charsetType === 'simple') {
+                            chars = '#. ';
+                        } else if (charsetType === 'complex') {
+                            chars = '$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\\|()1{}[]?-_+~<>i!lI;:,"^`\'. ';
+                        } else if (charsetType === 'bold-complex') {
+                            chars = '$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\\|()1{}[]?-_+~<>i!lI;:,"^`\'. ';
+                        } else if (charsetType === 'arabic') {
+                            chars = 'ابتثجحخدذرزسشصضطظعغفقكلمنهويءآأؤإئىةـڢڤڥڦڧڨݐݑݒݓݔݕݖݗݘݙݚݛݜݝݞݟݠݡࡀࡁࡂࡃࡄࡅࡆࡇࡈࡉࡊࡋࡌࡍࡎࡏࡐࡑࡒࡓࡔࡕࡖࡗࡘ ';
+                        } else if (charsetType === 'korean') {
+                            chars = '가각갂갃간갅갆갇갈갉갊갋갌갍갎갏감갑값갓갔강갖갗갘같갚갛개객갞갟갠갡갢갣갤갥갦갧갨갩갪갫갬갭갮갯갰갱갲갳갴갵갶갷갸갹갺갻갼갽갾갿걀걁걂걃걄걅걆걇걈걉걊걋걌걍걎걏걐걑걒걓걔걕걖걗걘걙걚걛걜걝걞걟걠걡걢걣걤걥걦걧걨걩걪걫걬걭걮걯거걱걲걳건걵걶걷걸걹걺걻걼걽걾걿검겁겂것겄겅겆겇겈겉겊겋게겍겎겏겐겑겒겓겔겕겖겗겘겙겚겛겜겝겞겟겠겡겢겣겤겥겦겧겨격겪겫견겭겮겯결겱겲겳겴겵겶겷겸겹겺겻겼경겾겿곀곁곂곃계곅곆곇곈곉곊곋곌곍곎곏곐곑곒곓곔곕곖곗곘곙곚곛곜곝곞곟고곡곢곣곤곥곦곧골곩곪곫곬곭곮곯곰곱곲곳곴공곶곷곸곹곺곻과곽곾곿관괁괂괃괄괅괆괇괈괉괊괋괌괍괎괏괐광괒괓괔괕괖괗괘괙괚괛괜괝괞괟괠괡괢괣괤괥괦괧괨괩괪괫괬괭괮괯괰괱괲괳괴괵괶괷괸괹괺괻괼괽괾괿굀굁굂굃굄굅굆굇굈굉굊굋굌굍굎굏교굑굒굓굔굕굖굗굘굙굚굛굜굝굞굟굠굡굢굣굤굥굦굧굨굩굪굫구국굮굯군굱굲굳굴굵굶굷굸굹굺굻굼굽굾굿궀궁궂궃궄궅궆궇궈궉궊궋권궍궎궏궐궑궒궓궔궕궖궗궘궙궚궛궜궝궞궟궠궡궢궣궤궥궦궧궨궩궪궫궬궭궮궯궰궱궲궳궴궵궶궷궸궹궺궻궼궽궾궿귀귁귂귃귄귅귆귇귈귉귊귋귌귍귎귏귐귑귒귓귔귕귖귗귘귙귚귛규귝귞귟균귡귢귣귤귥귦귧귨귩귪귫귬귭귮귯귰귱귲귳귴귵귶귷그극귺귻근귽귾귿글긁긂긃긄긅긆긇금급긊긋긌긍긎긏긐긑긒긓긔긕긖긗긘긙긚긛긜긝긞긟긠긡긢긣긤긥긦긧긨긩긪긫긬긭긮긯기긱긲긳긴긵긶긷길긹긺긻긼긽긾긿김깁깂깃깄깅깆깇깈깉깊깋까깍깎깏깐깑깒깓깔깕깖깗깘깙깚깛깜깝깞깟깠깡깢깣깤깥깦깧깨깩깪깫깬깭깮깯깰깱깲깳깴깵깶깷깸깹깺깻깼깽깾깿꺀꺁꺂꺃꺄꺅꺆꺇꺈꺉꺊꺋꺌꺍꺎꺏꺐꺑꺒꺓꺔꺕꺖꺗꺘꺙꺚꺛꺜꺝꺞꺟꺠꺡꺢꺣꺤꺥꺦꺧꺨꺩꺪꺫꺬꺭꺮꺯꺰꺱꺲꺳꺴꺵꺶꺷꺸꺹꺺꺻꺼꺽꺾꺿껀껁껂껃껄껅껆껇껈껉껊껋껌껍껎껏껐껑껒껓껔껕껖껗께껙껚껛껜껝껞껟껠껡껢껣껤껥껦껧껨껩껪껫껬껭껮껯껰껱껲껳껴껵껶껷껸껹껺껻껼껽껾껿꼀꼁꼂꼃꼄꼅꼆꼇꼈꼉꼊꼋꼌꼍꼎꼏꼐꼑꼒꼓꼔꼕꼖꼗꼘꼙꼚꼛꼜꼝꼞꼟꼠꼡꼢꼣꼤꼥꼦꼧꼨꼩꼪꼫꼬꼭꼮꼯꼰꼱꼲꼳꼴꼵꼶꼷꼸꼹꼺꼻꼼꼽꼾꼿꽀꽁꽂꽃꽄꽅꽆꽇꽈꽉꽊꽋꽌꽍꽎꽏꽐꽑꽒꽓꽔꽕꽖꽗꽘꽙꽚꽛꽜꽝꽞꽟꽠꽡꽢꽣꽤꽥꽦꽧꽨꽩꽪꽫꽬꽭꽮꽯꽰꽱꽲꽳꽴꽵꽶꽷꽸꽹꽺꽻꽼꽽꽾꽿꾀꾁꾂꾃꾄꾅꾆꾇꾈꾉꾊꾋꾌꾍꾎꾏꾐꾑꾒꾓꾔꾕꾖꾗꾘꾙꾚꾛꾜꾝꾞꾟꾠꾡꾢꾣꾤꾥꾦꾧꾨꾩꾪꾫꾬꾭꾮꾯꾰꾱꾲꾳꾴꾵꾶꾷꾸꾹꾺꾻꾼꾽꾾꾿꿀꿁꿂꿃꿄꿅꿆꿇꿈꿉꿊꿋꿌꿍꿎꿏꿐꿑꿒꿓꿔꿕꿖꿗꿘꿙꿚꿛꿜꿝꿞꿟꿠꿡꿢꿣꿤꿥꿦꿧꿨꿩꿪꿫꿬꿭꿮꿯꿰꿱꿲꿳꿴꿵꿶꿷꿸꿹꿺꿻꿼꿽꿾꿿 ';
                         } else {
-                            asciiOutput.innerHTML = result.html;
+                            chars = customCharset.value || '@%#*+=-:. ';
                         }
-                        
-                        processedAscii = result;
+
+                        // Check if we need to invert the charset based on color mode
+                        const isInverted = colorMode.includes('-inverted');
+                        if (isInverted) {
+                            chars = chars.split('').reverse().join('');
+                        }
+
+                        // If using masking, process with dual modes
+                        if (useMasking) {
+                            const result = convertToAsciiWithMask(
+                                originalImage,
+                                chars,
+                                resolution,
+                                contrast,
+                                brightness,
+                                mode,
+                                colorMode,
+                                foregroundColorMode,
+                                aspectRatio,
+                                maskData,
+                                charsetType === 'bold-complex'
+                            );
+
+                            // Display the result
+                            asciiOutput.innerHTML = result.html;
+                            processedAscii = result;
+                        } else {
+                            // Standard processing without masking
+                            const result = convertToAscii(
+                                originalImage,
+                                chars,
+                                resolution,
+                                contrast,
+                                brightness,
+                                mode,
+                                colorMode,
+                                aspectRatio,
+                                charsetType === 'bold-complex'
+                            );
+
+                            // Display the result
+                            if (colorMode.startsWith('none')) {
+                                asciiOutput.innerHTML = result.text;
+                                asciiOutput.style.color = textColorInput.value;
+                            } else {
+                                asciiOutput.innerHTML = result.html;
+                            }
+
+                            processedAscii = result;
+                        }
+
+                        loading.style.display = 'none';
+                        asciiOutput.style.display = 'block';
+                    } catch (error) {
+                        console.error('Conversion error:', error);
+                        alert('An error occurred during conversion. Please try with different settings or a different image.');
+                        loading.style.display = 'none';
+                        asciiOutput.style.display = 'block';
                     }
-                    
-                    loading.style.display = 'none';
-                    asciiOutput.style.display = 'block';
                 }, 100);
             });
             
@@ -1622,12 +1652,12 @@
                     pixels[i] = Math.min(255, pixels[i] * brightness);
                     pixels[i + 1] = Math.min(255, pixels[i + 1] * brightness);
                     pixels[i + 2] = Math.min(255, pixels[i + 2] * brightness);
-                    
-                    // Apply contrast
+
+                    // Apply contrast with proper clamping
                     const factor = (259 * (contrast + 255)) / (255 * (259 - contrast));
-                    pixels[i] = factor * (pixels[i] - 128) + 128;
-                    pixels[i + 1] = factor * (pixels[i + 1] - 128) + 128;
-                    pixels[i + 2] = factor * (pixels[i + 2] - 128) + 128;
+                    pixels[i] = Math.max(0, Math.min(255, factor * (pixels[i] - 128) + 128));
+                    pixels[i + 1] = Math.max(0, Math.min(255, factor * (pixels[i + 1] - 128) + 128));
+                    pixels[i + 2] = Math.max(0, Math.min(255, factor * (pixels[i + 2] - 128) + 128));
                 }
                 
                 ctx.putImageData(imageData, 0, 0);
@@ -1788,12 +1818,12 @@
                     pixels[i] = Math.min(255, pixels[i] * brightness);
                     pixels[i + 1] = Math.min(255, pixels[i + 1] * brightness);
                     pixels[i + 2] = Math.min(255, pixels[i + 2] * brightness);
-                    
-                    // Apply contrast
+
+                    // Apply contrast with proper clamping
                     const factor = (259 * (contrast + 255)) / (255 * (259 - contrast));
-                    pixels[i] = factor * (pixels[i] - 128) + 128;
-                    pixels[i + 1] = factor * (pixels[i + 1] - 128) + 128;
-                    pixels[i + 2] = factor * (pixels[i + 2] - 128) + 128;
+                    pixels[i] = Math.max(0, Math.min(255, factor * (pixels[i] - 128) + 128));
+                    pixels[i + 1] = Math.max(0, Math.min(255, factor * (pixels[i + 1] - 128) + 128));
+                    pixels[i + 2] = Math.max(0, Math.min(255, factor * (pixels[i + 2] - 128) + 128));
                 }
                 
                 ctx.putImageData(imageData, 0, 0);
@@ -2037,8 +2067,8 @@
                         <style>${style}</style>
                     </head>
                     <body>
-                        ${colorModeSelect.value.startsWith('none') && !maskModeSelect.value !== 'none' ? 
-                          `<div style="color: ${textColorInput.value};">${processedAscii.text.replace(/\n/g, '<br>')}</div>` : 
+                        ${colorModeSelect.value.startsWith('none') && maskModeSelect.value === 'none' ?
+                          `<div style="color: ${textColorInput.value};">${processedAscii.text.replace(/\n/g, '<br>')}</div>` :
                           processedAscii.html}
                     </body>
                     </html>
@@ -2270,6 +2300,231 @@
                     asciiOutput.style.fontSize = fontSize + 'px';
                 }
             }
+
+            // Keyboard shortcuts
+            document.addEventListener('keydown', function(e) {
+                // Ctrl/Cmd + Enter: Convert
+                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                    e.preventDefault();
+                    convertBtn.click();
+                }
+                // Ctrl/Cmd + S: Download as HTML
+                else if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                    e.preventDefault();
+                    if (processedAscii) {
+                        downloadHtmlBtn.click();
+                    }
+                }
+                // Ctrl/Cmd + O: Open file
+                else if ((e.ctrlKey || e.metaKey) && e.key === 'o') {
+                    e.preventDefault();
+                    imageInput.click();
+                }
+                // Ctrl/Cmd + M: Toggle masking
+                else if ((e.ctrlKey || e.metaKey) && e.key === 'm') {
+                    e.preventDefault();
+                    if (maskModeSelect.value === 'none') {
+                        maskModeSelect.value = 'brush';
+                    } else {
+                        maskModeSelect.value = 'none';
+                    }
+                    maskModeSelect.dispatchEvent(new Event('change'));
+                }
+                // F1: Show help
+                else if (e.key === 'F1') {
+                    e.preventDefault();
+                    showHelp();
+                }
+            });
+
+            // Help dialog function
+            function showHelp() {
+                const helpText = `
+ASCII Art Converter - Help
+
+KEYBOARD SHORTCUTS:
+• Ctrl/Cmd + Enter: Convert image to ASCII
+• Ctrl/Cmd + S: Download as HTML
+• Ctrl/Cmd + O: Open image file
+• Ctrl/Cmd + M: Toggle masking mode
+• F1: Show this help
+
+FEATURES:
+• Rendering Styles: Choose from Classic, Detailed, Stylized, or Realistic modes
+• Character Sets: Use Standard, Complex, Arabic, Korean, or create your own custom set
+• Color Modes: Apply original colors, gradients, RISO ink effects, or keep it monochrome
+• Masking: Paint foreground areas to apply different color modes to different parts
+• Resolution: Adjust the character density (20-300 characters width)
+• Export: Save as TXT (plain text), HTML (with colors), or PNG (image)
+
+TIPS:
+• Higher resolution = more detail but larger file size
+• Adjust aspect ratio to compensate for character width/height
+• Use masking to create dual-color effects
+• For best color preservation, download as HTML
+• Try different character sets for unique artistic effects
+
+PERFORMANCE:
+• Large images may take longer to process
+• Lower the resolution for faster previews
+• File size limit: 10MB
+
+VERSION: 2.0 Enhanced Edition
+                `;
+                alert(helpText);
+            }
+
+            // Preset management
+            const presets = {
+                'Classic B&W': {
+                    mode: 'classic',
+                    charset: 'standard',
+                    resolution: 80,
+                    contrast: 100,
+                    brightness: 100,
+                    aspectRatio: 1.8,
+                    colorMode: 'none'
+                },
+                'High Detail': {
+                    mode: 'detailed',
+                    charset: 'complex',
+                    resolution: 150,
+                    contrast: 110,
+                    brightness: 100,
+                    aspectRatio: 1.8,
+                    colorMode: 'original'
+                },
+                'RISO Print': {
+                    mode: 'stylized',
+                    charset: 'standard',
+                    resolution: 100,
+                    contrast: 120,
+                    brightness: 110,
+                    aspectRatio: 1.8,
+                    colorMode: 'riso'
+                },
+                'Gradient Art': {
+                    mode: 'realistic',
+                    charset: 'bold-complex',
+                    resolution: 120,
+                    contrast: 100,
+                    brightness: 100,
+                    aspectRatio: 1.8,
+                    colorMode: 'gradient'
+                }
+            };
+
+            // Save current settings as preset to localStorage
+            function savePreset(name) {
+                const preset = {
+                    mode: document.getElementById('mode').value,
+                    charset: charsetSelect.value,
+                    resolution: parseInt(resolutionSlider.value),
+                    contrast: parseInt(contrastSlider.value),
+                    brightness: parseInt(brightnessSlider.value),
+                    aspectRatio: parseFloat(aspectRatioSlider.value),
+                    colorMode: colorModeSelect.value
+                };
+                try {
+                    localStorage.setItem('ascii_preset_' + name, JSON.stringify(preset));
+                    alert('Preset "' + name + '" saved!');
+                } catch (e) {
+                    console.error('Error saving preset:', e);
+                    alert('Error saving preset. Local storage may be full or disabled.');
+                }
+            }
+
+            // Load preset from localStorage or built-in presets
+            function loadPreset(name) {
+                let preset;
+                try {
+                    const saved = localStorage.getItem('ascii_preset_' + name);
+                    preset = saved ? JSON.parse(saved) : presets[name];
+                } catch (e) {
+                    preset = presets[name];
+                }
+
+                if (preset) {
+                    document.getElementById('mode').value = preset.mode;
+                    charsetSelect.value = preset.charset;
+                    resolutionSlider.value = preset.resolution;
+                    resolutionValue.textContent = preset.resolution;
+                    contrastSlider.value = preset.contrast;
+                    contrastValue.textContent = preset.contrast + '%';
+                    brightnessSlider.value = preset.brightness;
+                    brightnessValue.textContent = preset.brightness + '%';
+                    aspectRatioSlider.value = preset.aspectRatio;
+                    aspectRatioValue.textContent = preset.aspectRatio;
+                    colorModeSelect.value = preset.colorMode;
+
+                    // Trigger change events
+                    colorModeSelect.dispatchEvent(new Event('change'));
+                    charsetSelect.dispatchEvent(new Event('change'));
+
+                    // Update ASCII if image is loaded
+                    if (originalImage) {
+                        updateAscii();
+                    }
+                }
+            }
+
+            // Add preset buttons to UI dynamically
+            function addPresetButtons() {
+                const controls = document.querySelector('.input-container');
+                if (!controls) return;
+
+                const presetSection = document.createElement('div');
+                presetSection.className = 'control-group';
+                presetSection.innerHTML = `
+                    <label>Quick Presets</label>
+                    <div style="display: flex; gap: 5px; flex-wrap: wrap; margin-top: 5px;">
+                        <button class="masking-btn" onclick="loadPreset('Classic B&W')" style="font-size: 11px; padding: 4px 8px;">Classic B&W</button>
+                        <button class="masking-btn" onclick="loadPreset('High Detail')" style="font-size: 11px; padding: 4px 8px;">High Detail</button>
+                        <button class="masking-btn" onclick="loadPreset('RISO Print')" style="font-size: 11px; padding: 4px 8px;">RISO Print</button>
+                        <button class="masking-btn" onclick="loadPreset('Gradient Art')" style="font-size: 11px; padding: 4px 8px;">Gradient</button>
+                    </div>
+                    <div style="margin-top: 8px; font-size: 11px; color: #666;">
+                        <a href="#" onclick="showHelp(); return false;" style="color: #3498db;">Keyboard Shortcuts (F1)</a>
+                    </div>
+                `;
+
+                // Insert before the convert button
+                const convertBtnElement = document.getElementById('convert-btn');
+                if (convertBtnElement) {
+                    convertBtnElement.parentNode.insertBefore(presetSection, convertBtnElement);
+                }
+            }
+
+            // Make functions global so they can be called from inline onclick handlers
+            window.loadPreset = loadPreset;
+            window.savePreset = savePreset;
+            window.showHelp = showHelp;
+
+            // Initialize preset buttons
+            addPresetButtons();
+
+            // Auto-save last used settings
+            function saveLastSettings() {
+                savePreset('_last_used');
+            }
+
+            // Load last used settings on startup
+            try {
+                const lastUsed = localStorage.getItem('ascii_preset__last_used');
+                if (lastUsed) {
+                    loadPreset('_last_used');
+                }
+            } catch (e) {
+                // Ignore if localStorage is not available
+            }
+
+            // Save settings when any control changes
+            const controls = [resolutionSlider, contrastSlider, brightnessSlider, aspectRatioSlider, colorModeSelect, charsetSelect, document.getElementById('mode')];
+            controls.forEach(control => {
+                if (control) {
+                    control.addEventListener('change', saveLastSettings);
+                }
+            });
         });
     </script>
 </body>
